@@ -1,0 +1,72 @@
+# ------------------------------------------------------------------
+# Unity
+# ------------------------------------------------------------------
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+.utmp/
+
+# Asset Store / imported packages (keep the project clean)
+[Aa]sset[Ss]tore[Tt]ools*/
+[Aa]sset[Ss]tore[Tt]ools*.meta
+
+# Addressables build output
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ------------------------------------------------------------------
+# IDE / generated project files
+# ------------------------------------------------------------------
+.vs/
+.idea/
+.vscode/
+.consulo/
+ExportedObj/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.DotSettings.user
+*.sln.DotSettings.user
+
+# ------------------------------------------------------------------
+# Builds and packages
+# ------------------------------------------------------------------
+*.apk
+*.aab
+*.app
+*.unitypackage
+*.keystore
+*.jks
+user.keystore
+
+# Crash reports
+sysinfo.txt
+crashlytics-build.properties
+
+# ------------------------------------------------------------------
+# OS
+# ------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
