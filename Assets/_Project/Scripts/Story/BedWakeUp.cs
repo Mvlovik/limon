@@ -20,6 +20,10 @@ namespace GameLimon.Story
         [Tooltip("Сообщение в консоль - временная замена реплике/озвучке.")]
         [SerializeField] private string debugMessage = "Игрок проснулся и встал.";
 
+        [Header("Реплика при пробуждении")]
+        [Tooltip("Первая реплика (текст и/или озвучка в поле voice). Играет в момент пробуждения.")]
+        [SerializeField] private ThoughtLine wakeLine;
+
         [Header("Тайминги анимации")]
         [Tooltip("Фаза 1: сесть на кровати, сек.")]
         [SerializeField] private float sitUpDuration = 1.0f;
@@ -134,6 +138,9 @@ namespace GameLimon.Story
         private IEnumerator WakeUpSequence()
         {
             _waking = true;
+
+            if (wakeLine != null)
+                StoryDirector.Ensure().PlayLine(wakeLine);
 
             // Фаза 1 садимся.
             yield return Animate(sitUpDuration, t =>

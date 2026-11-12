@@ -210,8 +210,18 @@ namespace GameLimon.Story
 
         private IEnumerator PlayLineRoutine(ThoughtLine line)
         {
-            if (line == null || string.IsNullOrEmpty(line.Text))
+            if (line == null) yield break;
+
+            // Реплика без текста — только озвучка (например, первая реплика при пробуждении).
+            if (string.IsNullOrEmpty(line.Text))
+            {
+                if (line.Voice != null && _voice != null)
+                {
+                    _voice.PlayOneShot(line.Voice);
+                    yield return new WaitForSeconds(line.Voice.length);
+                }
                 yield break;
+            }
 
             EnsureThoughtUI();
             if (_thoughtUI == null)

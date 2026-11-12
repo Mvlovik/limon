@@ -23,12 +23,17 @@ namespace GameLimon.Story
         public float Duration => duration;
         public AudioClip Voice => voice;
 
-        /// <summary>Длительность показа с учётом скорости чтения</summary>
+        /// <summary>Длительность показа с учётом скорости чтения и длины озвучки</summary>
         public float ResolveDuration(float charsPerSecond)
         {
-            if (duration > 0.01f) return duration;
-            int length = string.IsNullOrEmpty(text) ? 0 : text.Length;
-            return Mathf.Max(1.2f, length / Mathf.Max(1f, charsPerSecond));
+            float fromText = duration > 0.01f
+                ? duration
+                : Mathf.Max(1.2f, (string.IsNullOrEmpty(text) ? 0 : text.Length) / Mathf.Max(1f, charsPerSecond));
+
+            if (voice != null)
+                fromText = Mathf.Max(fromText, voice.length + 0.2f);
+
+            return fromText;
         }
     }
 }

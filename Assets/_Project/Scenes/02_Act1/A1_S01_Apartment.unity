@@ -928,7 +928,7 @@ GameObject:
   - component: {fileID: 647544246}
   - component: {fileID: 647544245}
   - component: {fileID: 647544244}
-  - component: {fileID: 647544243}
+  - component: {fileID: 647544247}
   m_Layer: 0
   m_Name: CoffeeMachine
   m_TagString: Untagged
@@ -951,22 +951,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1026483782}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &647544243
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 647544241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5d9c72c1be1a5742a58aeab0a8b4bfd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Interaction.FlagInteractable
-  prompt: "E \u2014 \u0437\u0430\u0432\u0430\u0440\u0438\u0442\u044C \u043A\u043E\u0444\u0435"
-  oneShot: 1
-  flag: A1_S01_CoffeeStarted
-  debugMessage: "\u041A\u043E\u0444\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D \u0432\u0430\u0440\u0438\u0442\u044C\u0441\u044F."
 --- !u!23 &647544244
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1045,6 +1029,39 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 647544241}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &647544247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 647544241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff010ab337f3384a89b9941137d9088, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Interaction.StoryActionInteractable
+  prompt: "E \u2014 \u0437\u0430\u0432\u0430\u0440\u0438\u0442\u044C \u043A\u043E\u0444\u0435"
+  oneShot: 1
+  actions:
+  - type: 4
+    flag: 
+    thought: {fileID: 0}
+    clip: {fileID: 8300000, guid: 1e786a10dc0acb641a66966daf8e025d, type: 3}
+    volume: 1
+    spatial: 1
+    duration: 0
+    fadeAlpha: 0
+    message: 
+  - type: 1
+    flag: A1_S01_CoffeeStarted
+    thought: {fileID: 0}
+    clip: {fileID: 0}
+    volume: 0
+    spatial: 0
+    duration: 0
+    fadeAlpha: 0
+    message: 
 --- !u!1 &649410662
 GameObject:
   m_ObjectHideFlags: 0
@@ -2748,6 +2765,7 @@ MonoBehaviour:
   bed: {fileID: 1836639835}
   flag: A1_S01_WokeUp
   debugMessage: "\u0418\u0433\u0440\u043E\u043A \u043F\u0440\u043E\u0441\u043D\u0443\u043B\u0441\u044F \u0438 \u0432\u0441\u0442\u0430\u043B."
+  wakeLine: {fileID: 11400000, guid: 8d478b31d97c4f84eaf245af75c2842b, type: 2}
   sitUpDuration: 1
   standUpDuration: 1.2
 --- !u!23 &1726800691
