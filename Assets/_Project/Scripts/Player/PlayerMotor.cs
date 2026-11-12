@@ -56,6 +56,7 @@ namespace GameLimon.Player
         private Vector3 _horizontalVelocity;
         private float _verticalVelocity;
         private float _crouchAmount;
+        private bool _isJumping;
 
 
         public float CrouchAmount => _crouchAmount;
@@ -85,30 +86,49 @@ namespace GameLimon.Player
 
             UpdateCrouch();
 
-            Vector2 move = _input != null ? _input.Move : Vector2.zero;
+            // В прыжке WASD заблокирован, но инерция сохраняется:
+            // горизонтальную скорость не изменяем до приземления.
+            if (!_isJumping)
+            {
+                Vector2 move = _input != null ? _input.Move : Vector2.zero;
 
-            Vector3 desired = transform.right * move.x + transform.forward * move.y;
-            if (desired.sqrMagnitude > 1f)
-                desired.Normalize();
+                Vector3 desired = transform.right * move.x + transform.forward * move.y;
+                if (desired.sqrMagnitude > 1f)
+                    desired.Normalize();
 
-            IsSprinting = _input != null && _input.SprintHeld && move.sqrMagnitude > 0.01f && _crouchAmount < 0.5f;
+                IsSprinting = _input != null && _input.SprintHeld && move.sqrMagnitude > 0.01f
+                    && _crouchAmount < 0.5f;
 
-            float targetSpeed = Mathf.Lerp(walkSpeed, crouchSpeed, _crouchAmount);
-            if (IsSprinting)
-                targetSpeed = sprintSpeed;
+                float targetSpeed = Mathf.Lerp(walkSpeed, crouchSpeed, _crouchAmount);
+                if (IsSprinting)
+                    targetSpeed = sprintSpeed;
 
-            _horizontalVelocity = Vector3.MoveTowards(
-                _horizontalVelocity,
-                desired * targetSpeed,
-                acceleration * Time.deltaTime);
+                _horizontalVelocity = Vector3.MoveTowards(
+                    _horizontalVelocity,
+                    desired * targetSpeed,
+                    acceleration * Time.deltaTime);
+            }
+            else
+            {
+                IsSprinting = false;
+            }
 
             if (_controller.isGrounded && _verticalVelocity < 0f)
+            {
                 _verticalVelocity = -2f; // прижимаем к полу
+                _isJumping = false;
+            }
             else
+            {
                 _verticalVelocity += gravity * Time.deltaTime;
+            }
 
             Vector3 velocity = _horizontalVelocity + Vector3.up * _verticalVelocity;
-            _controller.Move(velocity * Time.deltaTime);
+            CollisionFlags collisionFlags = _controller.Move(velocity * Time.deltaTime);
+
+            // Упёрлись головой в потолок во время прыжка — не ждём конца дуги, сразу падаем.
+            if ((collisionFlags & CollisionFlags.Above) != 0 && _verticalVelocity > 0f)
+                _verticalVelocity = 0f;
         }
 
         private void UpdateCrouch()
@@ -167,6 +187,7 @@ namespace GameLimon.Player
                 return;
 
             _verticalVelocity = Mathf.Sqrt(2f * Mathf.Max(0f, jumpHeight) * Mathf.Abs(gravity));
+            _isJumping = true;
         }
 
         private void ResolveInput()
