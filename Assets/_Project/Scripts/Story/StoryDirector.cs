@@ -91,6 +91,15 @@ namespace GameLimon.Story
             EnsureWorker();
         }
 
+        /// <summary>Проиграть действия и дождаться, пока очередь опустеет.</summary>
+        public IEnumerator RunBlocking(IReadOnlyList<StoryAction> actions, Vector3 position = default)
+        {
+            Run(actions, position);
+
+            while (IsBusy)
+                yield return null;
+        }
+
         /// <summary>Проиграть последовательность мыслей</summary>
         public void Play(ThoughtSequence sequence)
         {

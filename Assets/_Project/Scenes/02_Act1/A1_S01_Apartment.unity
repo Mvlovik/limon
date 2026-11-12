@@ -2300,14 +2300,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 1394090885}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ede77dd316a49f39191786b8c4c6919, type: 3}
+  m_Script: {fileID: 11500000, guid: fff010ab337f3384a89b9941137d9088, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Interaction.TeleportInteractable
-  prompt: "E \u2014 \u0432\u044B\u0439\u0442\u0438 \u043D\u0430 \u0443\u043B\u0438\u0446\u0443"
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Interaction.StoryActionInteractable
+  prompt: "E \u2014 \u0432\u044B\u0439\u0442\u0438 \u0438\u0437 \u043A\u0432\u0430\u0440\u0442\u0438\u0440\u044B"
   oneShot: 0
-  destination: {fileID: 582660685}
-  flag: A1_S01_LeftApartment
-  debugMessage: "\u0422\u0435\u043B\u0435\u043F\u043E\u0440\u0442\u0430\u0446\u0438\u044F \u043D\u0430 \u0443\u043B\u0438\u0446\u0443."
+  actions:
+  - type: 1
+    flag: A1_S01_LeftApartment
+    thought: {fileID: 0}
+    clip: {fileID: 0}
+    volume: 0
+    spatial: 0
+    duration: 0
+    fadeAlpha: 0
+    message: 
+  - type: 6
+    flag: 
+    thought: {fileID: 0}
+    clip: {fileID: 0}
+    volume: 0
+    spatial: 0
+    duration: 0
+    fadeAlpha: 0
+    message: 
 --- !u!1 &1420086130
 GameObject:
   m_ObjectHideFlags: 0

@@ -123,6 +123,14 @@ namespace GameLimon.Core
 
             _isTransitioning = true;
 
+            // Не выгружаем текущую сцену, если следующей нет в Build Settings.
+            if (!Application.CanStreamedLevelBeLoaded(next.SceneName))
+            {
+                Debug.LogError($"[GameFlow] Сцена \"{next.SceneName}\" ({next.Id}) отсутствует в Build Settings — переход отменён.");
+                _isTransitioning = false;
+                yield break;
+            }
+
             GameRoot root = GameRoot.Instance;
             UIRoot ui = root != null ? root.UI : null;
             SceneLoader loader = root != null ? root.Loader : null;

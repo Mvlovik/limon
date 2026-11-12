@@ -27,7 +27,9 @@ namespace GameLimon.EditorTools
         private const string GameRootPrefabPath = "Assets/_Project/Prefabs/Systems/PF_GameRoot.prefab";
         private const string BootScenePath = "Assets/_Project/Scenes/00_Boot/Boot.unity";
         private const string ApartmentScenePath = "Assets/_Project/Scenes/02_Act1/A1_S01_Apartment.unity";
+        private const string AlleyScenePath = "Assets/_Project/Scenes/02_Act1/A1_S02_Alley.unity";
         private const string SceneDefinitionPath = "Assets/_Project/Data/Story/SCN_A1_S01_Apartment.asset";
+        private const string AlleySceneDefinitionPath = "Assets/_Project/Data/Story/SCN_A1_S02_Alley.asset";
         private const string SequencePath = "Assets/_Project/Data/Story/SEQ_Act1.asset";
         private const string WallMaterialPath = "Assets/_Project/Art/Materials/MAT_Blockout_Wall.mat";
         private const string FloorMaterialPath = "Assets/_Project/Art/Materials/MAT_Blockout_Floor.mat";
@@ -36,6 +38,7 @@ namespace GameLimon.EditorTools
 
         private const string MenuPath = "Tools/GameLimon/Setup First Playable Scene";
         private const string UpgradeMenuPath = "Tools/GameLimon/Upgrade First Scene (Ground & Street)";
+        private const string TransitionsMenuPath = "Tools/GameLimon/Setup Scene Transitions (A1_S02)";
 
         /// <summary>Высота комнаты над землёй: примерно 4-5 этажей.</summary>
         private const float RoomHeight = 15f;
@@ -75,6 +78,34 @@ namespace GameLimon.EditorTools
             Debug.Log("[FirstSceneSetup] Сцена обновлена: земля, комната поднята на высоту ~5 этажа, дверь телепортирует на улицу.");
         }
 
+        [MenuItem(TransitionsMenuPath)]
+        public static void SetupTransitionsFromMenu()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("[FirstSceneSetup] Выйдите из Play Mode и повторите.");
+                return;
+            }
+
+            EnsureFolders();
+            EnsureStoryAssets();
+            bool alleyCreated = EnsureAlleyScene();
+            EnsureBuildSettings();
+
+            Scene scene = EditorSceneManager.OpenScene(ApartmentScenePath, OpenSceneMode.Single);
+            EnsureStreetLayout(scene);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Debug.Log($"[FirstSceneSetup] Переходы готовы: A1_S01 → A1_S02. Переулок: {(alleyCreated ? "создан" : "уже был")} — {AlleyScenePath}");
+        }
+
         public static void Setup(bool interactive)
         {
             if (EditorApplication.isPlaying)
@@ -97,6 +128,7 @@ namespace GameLimon.EditorTools
             EnsureGameRootServices();
             EnsureBootHasPlayer();
             bool sceneCreated = EnsureApartmentScene();
+            bool alleyCreated = EnsureAlleyScene();
             EnsureBuildSettings();
 
             AssetDatabase.SaveAssets();
@@ -107,10 +139,11 @@ namespace GameLimon.EditorTools
                 $"- Игрок: {(playerCreated ? "создан" : "уже был")} — {PlayerPrefabPath}\n" +
                 $"- Boot: игрок в сцене — {BootScenePath}\n" +
                 $"- Сцена: {(sceneCreated ? "создана" : "уже была")} — {ApartmentScenePath}\n" +
-                "- Сцена: платформа-земля, комната на высоте ~5 этажа, дверь — телепорт на улицу\n" +
-                $"- Story: {SequencePath}\n" +
-                "- Build Settings: Boot = 0, A1_S01_Apartment = 1\n\n" +
-                "Дальше: Play из Boot.unity. WASD — ходьба, мышь — камера, E — взаимодействие; дверь выводит на улицу.";
+                $"- Переулок: {(alleyCreated ? "создан" : "уже был")} — {AlleyScenePath}\n" +
+                "- Сцена: платформа-земля, комната на высоте ~5 этажа, дверь завершает сцену\n" +
+                $"- Story: {SequencePath} (2 сцены)\n" +
+                "- Build Settings: Boot = 0, A1_S01_Apartment = 1, A1_S02_Alley = 2\n\n" +
+                "Дальше: Play из Boot.unity. WASD — ходьба, мышь — камера, E — взаимодействие; дверь ведёт в переулок.";
 
             Debug.Log(summary);
 
@@ -182,18 +215,11 @@ namespace GameLimon.EditorTools
 
         private static void EnsureStoryAssets()
         {
-            SceneDefinition definition = AssetDatabase.LoadAssetAtPath<SceneDefinition>(SceneDefinitionPath);
-            if (definition == null)
-            {
-                definition = ScriptableObject.CreateInstance<SceneDefinition>();
-                AssetDatabase.CreateAsset(definition, SceneDefinitionPath);
-            }
+            SceneDefinition apartment = EnsureSceneDefinition(
+                SceneDefinitionPath, "A1_S01", "A1_S01_Apartment", "Квартира", "A1_S01_Start");
 
-            SetString(definition, "id", "A1_S01");
-            SetString(definition, "sceneName", "A1_S01_Apartment");
-            SetString(definition, "displayName", "Квартира");
-            SetString(definition, "checkpointId", "A1_S01_Start");
-            EditorUtility.SetDirty(definition);
+            SceneDefinition alley = EnsureSceneDefinition(
+                AlleySceneDefinitionPath, "A1_S02", "A1_S02_Alley", "Переулок", "A1_S02_Start");
 
             StorySequence sequence = AssetDatabase.LoadAssetAtPath<StorySequence>(SequencePath);
             if (sequence == null)
@@ -204,12 +230,31 @@ namespace GameLimon.EditorTools
 
             var serialized = new SerializedObject(sequence);
             SerializedProperty scenes = serialized.FindProperty("scenes");
-            scenes.arraySize = 1;
-            scenes.GetArrayElementAtIndex(0).objectReferenceValue = definition;
+            scenes.arraySize = 2;
+            scenes.GetArrayElementAtIndex(0).objectReferenceValue = apartment;
+            scenes.GetArrayElementAtIndex(1).objectReferenceValue = alley;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(sequence);
 
-            Debug.Log($"[FirstSceneSetup] Story обновлён: {SequencePath} (1 сцена).");
+            Debug.Log($"[FirstSceneSetup] Story обновлён: {SequencePath} (2 сцены).");
+        }
+
+        private static SceneDefinition EnsureSceneDefinition(
+            string path, string id, string sceneName, string displayName, string checkpointId)
+        {
+            SceneDefinition definition = AssetDatabase.LoadAssetAtPath<SceneDefinition>(path);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<SceneDefinition>();
+                AssetDatabase.CreateAsset(definition, path);
+            }
+
+            SetString(definition, "id", id);
+            SetString(definition, "sceneName", sceneName);
+            SetString(definition, "displayName", displayName);
+            SetString(definition, "checkpointId", checkpointId);
+            EditorUtility.SetDirty(definition);
+            return definition;
         }
 
         // ------------------------------------------------------------------
@@ -372,11 +417,7 @@ namespace GameLimon.EditorTools
             SetBool(coffeeInteractable, "oneShot", true);
 
             GameObject door = CreateBox(parent, "FrontDoor", new Vector3(0f, 1.05f, -7.85f), new Vector3(1.1f, 2.1f, 0.1f), prop);
-            var doorInteractable = door.AddComponent<FlagInteractable>();
-            SetString(doorInteractable, "prompt", "E — выйти из квартиры");
-            SetString(doorInteractable, "flag", "A1_S01_LeftApartment");
-            SetString(doorInteractable, "debugMessage", "Выход из квартиры (сцена 2 ещё не собрана).");
-            SetBool(doorInteractable, "oneShot", true);
+            ConfigureSceneExitDoor(door);
 
             // Пробуждение: невидимый триггер над кроватью — лежащий игрок смотрит в потолок и видит его.
             GameObject wake = CreateBox(parent, "BedWakeUp", new Vector3(-3.2f, 2.75f, -0.4f), new Vector3(1.4f, 0.3f, 1.4f), null);
@@ -402,6 +443,70 @@ namespace GameLimon.EditorTools
             key.color = new Color(0.6f, 0.7f, 1f);
             key.intensity = 0.15f;
             key.shadows = LightShadows.None;
+        }
+
+        // ------------------------------------------------------------------
+        // Сцена 2: переулок (заготовка, Степа пересоберёт по документу)
+        // ------------------------------------------------------------------
+
+        private static bool EnsureAlleyScene()
+        {
+            if (System.IO.File.Exists(ToAbsolutePath(AlleyScenePath)))
+            {
+                Debug.Log($"[FirstSceneSetup] Сцена уже существует: {AlleyScenePath}");
+                return false;
+            }
+
+            Material asphalt = EnsureMaterial(AsphaltMaterialPath, new Color(0.28f, 0.28f, 0.3f), 0.35f);
+            Material wall = EnsureMaterial(WallMaterialPath, new Color(0.62f, 0.6f, 0.55f), 0.05f);
+
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            Transform systems = CreateRoot("_Systems");
+            Transform environment = CreateRoot("_Environment");
+            CreateRoot("_Gameplay");
+            Transform lighting = CreateRoot("_Lighting");
+            CreateRoot("_Audio");
+            Transform triggers = CreateRoot("_Triggers");
+
+            // Большая платформа-земля и две стены, читается как переулок.
+            CreateBox(environment, "Ground", new Vector3(0f, -0.5f, 0f), new Vector3(60f, 1f, 60f), asphalt);
+            CreateBox(environment, "Wall_West", new Vector3(-4f, 2.5f, 0f), new Vector3(0.3f, 5f, 40f), wall);
+            CreateBox(environment, "Wall_East", new Vector3(4f, 2.5f, 0f), new Vector3(0.3f, 5f, 40f), wall);
+
+            var spawnObject = new GameObject("PlayerSpawn");
+            spawnObject.transform.SetParent(systems, false);
+            spawnObject.transform.SetPositionAndRotation(new Vector3(0f, 0.05f, -16f), Quaternion.identity);
+            spawnObject.AddComponent<PlayerSpawnPoint>();
+
+            // Пример зоны-триггера для постановщика: конец переулка.
+            GameObject exitVolume = CreateBox(triggers, "Trigger_AlleyEnd",
+                new Vector3(0f, 1.5f, 16f), new Vector3(6f, 3f, 2f), null);
+            exitVolume.GetComponent<MeshRenderer>().enabled = false;
+            exitVolume.GetComponent<Collider>().isTrigger = true;
+
+            TriggerVolume trigger = exitVolume.AddComponent<TriggerVolume>();
+            var serializedTrigger = new SerializedObject(trigger);
+            SerializedProperty actions = serializedTrigger.FindProperty("onEnter");
+            actions.arraySize = 1;
+            SerializedProperty logAction = actions.GetArrayElementAtIndex(0);
+            logAction.FindPropertyRelative("type").enumValueIndex = (int)StoryActionType.Log;
+            logAction.FindPropertyRelative("message").stringValue = "Конец переулка (заготовка сцены 2).";
+            serializedTrigger.ApplyModifiedPropertiesWithoutUndo();
+
+            var keyObject = new GameObject("Light_Key");
+            keyObject.transform.SetParent(lighting, false);
+            keyObject.transform.rotation = Quaternion.Euler(45f, -30f, 0f);
+
+            Light key = keyObject.AddComponent<Light>();
+            key.type = LightType.Directional;
+            key.color = new Color(0.75f, 0.8f, 0.9f);
+            key.intensity = 0.6f;
+            key.shadows = LightShadows.Soft;
+
+            EditorSceneManager.SaveScene(scene, AlleyScenePath);
+            Debug.Log($"[FirstSceneSetup] Создана сцена-заготовка: {AlleyScenePath}");
+            return true;
         }
 
         // ------------------------------------------------------------------
@@ -433,29 +538,16 @@ namespace GameLimon.EditorTools
             Transform systems = FindOrCreateRoot(scene, "_Systems");
             RaiseToRoomLevel(systems);
 
-            // Точка телепорта на улице — после подъёма, чтобы не попасть в RoomLevel.
-            Transform streetSpawn = systems.Find("StreetSpawn");
-            if (streetSpawn == null)
-            {
-                var streetObject = new GameObject("StreetSpawn");
-                streetObject.transform.SetParent(systems, false);
-                // Игрок смотрит вдоль улицы, от дома.
-                streetObject.transform.SetPositionAndRotation(
-                    new Vector3(0f, 0.05f, -12f),
-                    Quaternion.LookRotation(Vector3.forward));
-                streetSpawn = streetObject.transform;
-            }
-
-            // Дверь прихожей: теперь телепорт на улицу.
+            // Дверь прихожей: завершает сцену и запускает переход к следующей.
             Transform gameplay = FindOrCreateRoot(scene, "_Gameplay");
             Transform door = gameplay.Find("RoomLevel/FrontDoor");
             if (door == null)
                 door = gameplay.Find("FrontDoor");
 
             if (door != null)
-                ConfigureStreetDoor(door.gameObject, streetSpawn);
+                ConfigureSceneExitDoor(door.gameObject);
             else
-                Debug.LogWarning("[FirstSceneSetup] FrontDoor не найден — телепорт не настроен.");
+                Debug.LogWarning("[FirstSceneSetup] FrontDoor не найден — переход не настроен.");
         }
 
         /// <summary>Переносит всех детей root (кроме исключений) под группу RoomLevel на высоте комнаты.</summary>
@@ -484,24 +576,35 @@ namespace GameLimon.EditorTools
             level.position = new Vector3(0f, RoomHeight, 0f);
         }
 
-        /// <summary>Заменяет FlagInteractable двери на телепорт на улицу.</summary>
-        private static void ConfigureStreetDoor(GameObject door, Transform destination)
+        /// <summary>Дверь-выход: ставит флаг ухода и завершает текущую сцену (GameFlow грузит следующую).</summary>
+        private static void ConfigureSceneExitDoor(GameObject door)
         {
             foreach (Component component in door.GetComponents<Component>())
             {
-                if (component is FlagInteractable)
+                if (component is FlagInteractable || component is TeleportInteractable)
                     Object.DestroyImmediate(component);
             }
 
-            TeleportInteractable teleport = door.GetComponent<TeleportInteractable>();
-            if (teleport == null)
-                teleport = door.AddComponent<TeleportInteractable>();
+            StoryActionInteractable interactable = door.GetComponent<StoryActionInteractable>();
+            if (interactable == null)
+                interactable = door.AddComponent<StoryActionInteractable>();
 
-            SetString(teleport, "prompt", "E — выйти на улицу");
-            SetString(teleport, "flag", "A1_S01_LeftApartment");
-            SetString(teleport, "debugMessage", "Телепортация на улицу.");
-            SetObjectReference(teleport, "destination", destination);
-            SetBool(teleport, "oneShot", false);
+            SetString(interactable, "prompt", "E — выйти из квартиры");
+            SetBool(interactable, "oneShot", false);
+
+            var serialized = new SerializedObject(interactable);
+            SerializedProperty actions = serialized.FindProperty("actions");
+            actions.arraySize = 2;
+
+            SerializedProperty setFlag = actions.GetArrayElementAtIndex(0);
+            setFlag.FindPropertyRelative("type").enumValueIndex = (int)StoryActionType.SetFlag;
+            setFlag.FindPropertyRelative("flag").stringValue = "A1_S01_LeftApartment";
+
+            SerializedProperty complete = actions.GetArrayElementAtIndex(1);
+            complete.FindPropertyRelative("type").enumValueIndex = (int)StoryActionType.CompleteScene;
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(interactable);
         }
 
         private static Transform FindOrCreateRoot(Scene scene, string name)
@@ -538,13 +641,15 @@ namespace GameLimon.EditorTools
         {
             var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
 
-            scenes.RemoveAll(scene => scene.path == BootScenePath || scene.path == ApartmentScenePath);
+            scenes.RemoveAll(scene => scene.path == BootScenePath || scene.path == ApartmentScenePath ||
+                                      scene.path == AlleyScenePath);
 
             scenes.Insert(0, new EditorBuildSettingsScene(BootScenePath, true));
             scenes.Insert(1, new EditorBuildSettingsScene(ApartmentScenePath, true));
+            scenes.Insert(2, new EditorBuildSettingsScene(AlleyScenePath, true));
 
             EditorBuildSettings.scenes = scenes.ToArray();
-            Debug.Log("[FirstSceneSetup] Build Settings: Boot = 0, A1_S01_Apartment = 1.");
+            Debug.Log("[FirstSceneSetup] Build Settings: Boot = 0, A1_S01_Apartment = 1, A1_S02_Alley = 2.");
         }
 
         // ------------------------------------------------------------------
