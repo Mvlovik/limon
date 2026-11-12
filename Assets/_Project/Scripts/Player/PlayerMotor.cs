@@ -67,6 +67,15 @@ namespace GameLimon.Player
 
         public bool IsGrounded => _controller != null && _controller.isGrounded;
 
+        /// <summary>Управление заблокировано (катсцены, пробуждение на кровати и т.п.).</summary>
+        public bool ControlLocked { get; private set; }
+
+        /// <summary>Высота глаз стоя — для анимаций, возвращающих камеру в позу стоя.</summary>
+        public float StandEyeHeight => standEyeHeight;
+
+        /// <summary>Блокирует/разблокирует управление игроком.</summary>
+        public void SetControlLocked(bool locked) => ControlLocked = locked;
+
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
@@ -84,11 +93,20 @@ namespace GameLimon.Player
             if (_input == null)
                 ResolveInput();
 
+            // Катсцена / пробуждение: контроллер отключён снаружи —
+            // физику не считаем, чтобы не звать Move на неактивном контроллере
+            // и не копить гравитацию, пока позой управляет катсцена.
+            if (_controller != null && !_controller.enabled)
+                return;
+
             UpdateCrouch();
+
+            bool locked = ControlLocked;
 
             // В прыжке WASD заблокирован, но инерция сохраняется:
             // горизонтальную скорость не изменяем до приземления.
-            if (!_isJumping)
+            // При залочке управления (катсцена) ввод игнорируется, скорость гасится.
+            if (!locked && !_isJumping)
             {
                 Vector2 move = _input != null ? _input.Move : Vector2.zero;
 
@@ -111,6 +129,15 @@ namespace GameLimon.Player
             else
             {
                 IsSprinting = false;
+
+                if (locked)
+                {
+                    // Катсцена: гасим инерцию, чтобы игрок не уезжал.
+                    _horizontalVelocity = Vector3.MoveTowards(
+                        _horizontalVelocity,
+                        Vector3.zero,
+                        acceleration * Time.deltaTime);
+                }
             }
 
             if (_controller.isGrounded && _verticalVelocity < 0f)
@@ -133,7 +160,7 @@ namespace GameLimon.Player
 
         private void UpdateCrouch()
         {
-            bool wantsCrouch = _input != null && _input.CrouchHeld;
+            bool wantsCrouch = _input != null && _input.CrouchHeld && !ControlLocked;
 
            
             if (!wantsCrouch && _crouchAmount > 0.01f && !HasHeadroom())
@@ -183,11 +210,19 @@ namespace GameLimon.Player
 
         private void OnJumpPressed()
         {
-            if (_controller == null || !_controller.isGrounded)
+            if (_controller == null || !_controller.isGrounded || ControlLocked)
                 return;
 
             _verticalVelocity = Mathf.Sqrt(2f * Mathf.Max(0f, jumpHeight) * Mathf.Abs(gravity));
             _isJumping = true;
+        }
+
+        /// <summary>Сбросить инерцию — используется при телепорте игрока.</summary>
+        public void ResetMomentum()
+        {
+            _horizontalVelocity = Vector3.zero;
+            _verticalVelocity = -2f;
+            _isJumping = false;
         }
 
         private void ResolveInput()

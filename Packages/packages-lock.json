@@ -1,5 +1,21 @@
 {
   "dependencies": {
+    "com.alexeyperov.unity-open-mcp-bridge": {
+      "version": "https://github.com/AlexeyPerov/unity-open-mcp.git?path=packages/bridge#bridge-v1.6.0",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.alexeyperov.unity-open-mcp-verify": "1.6.0"
+      },
+      "hash": "51defe28353b119c9b5722260e0314b0b5186303"
+    },
+    "com.alexeyperov.unity-open-mcp-verify": {
+      "version": "https://github.com/AlexeyPerov/unity-open-mcp.git?path=packages/verify#verify-v1.6.0",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "51defe28353b119c9b5722260e0314b0b5186303"
+    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 1,

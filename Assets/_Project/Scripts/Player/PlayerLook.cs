@@ -53,6 +53,12 @@ namespace GameLimon.Player
         private float _bobWeight;
         private float _smoothedEyeHeight;
 
+        /// <summary>
+        /// Поза камеры под внешним управлением (катсцены, пробуждение на кровати):
+        /// обзор мышью и запись позы камеры приостановлены.
+        /// </summary>
+        public bool PoseLocked { get; set; }
+
         private void Start()
         {
             if (cameraTransform == null && Camera.main != null)
@@ -76,6 +82,13 @@ namespace GameLimon.Player
 
             if (_input == null || cameraTransform == null)
                 return;
+
+            if (PoseLocked)
+            {
+                // Съедаем накопленный дельта-ввод мыши, чтобы после разблокировки не было рывка.
+                _input.ConsumeLook();
+                return;
+            }
 
             bool justLocked = false;
 
@@ -153,6 +166,20 @@ namespace GameLimon.Player
         {
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !locked;
+        }
+
+        /// <summary>
+        /// Синхронизировать внутреннее состояние с текущей позой камеры
+        /// (после катсцен, когда камеру двигали снаружи).
+        /// </summary>
+        public void ResyncPose()
+        {
+            if (cameraTransform == null)
+                return;
+
+            float pitch = cameraTransform.localEulerAngles.x;
+            _pitch = pitch > 180f ? pitch - 360f : pitch;
+            _smoothedEyeHeight = cameraTransform.localPosition.y;
         }
 
         private void ResolveInput()

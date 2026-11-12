@@ -14,9 +14,11 @@ namespace GameLimon.EditorTools
     /// <summary>
     /// Один клик — первый играбельный вертикальный срез:
     /// PF_Player (камера, движение, взаимодействие), Boot с игроком,
-    /// A1_S01_Apartment (blockout), StorySequence и Build Settings.
+    /// A1_S01_Apartment (blockout на платформе-земле, дверь телепортирует на улицу),
+    /// StorySequence и Build Settings.
     ///
     /// Меню: Tools → GameLimon → Setup First Playable Scene.
+    /// Обновление уже собранной сцены: Tools → GameLimon → Upgrade First Scene (Ground & Street).
     /// Скрипт идемпотентен: существующие ассеты и сцены не перезаписываются.
     /// </summary>
     public static class FirstSceneSetup
@@ -30,8 +32,13 @@ namespace GameLimon.EditorTools
         private const string WallMaterialPath = "Assets/_Project/Art/Materials/MAT_Blockout_Wall.mat";
         private const string FloorMaterialPath = "Assets/_Project/Art/Materials/MAT_Blockout_Floor.mat";
         private const string PropMaterialPath = "Assets/_Project/Art/Materials/MAT_Blockout_Prop.mat";
+        private const string AsphaltMaterialPath = "Assets/_Project/Art/Materials/MAT_Blockout_Asphalt.mat";
 
         private const string MenuPath = "Tools/GameLimon/Setup First Playable Scene";
+        private const string UpgradeMenuPath = "Tools/GameLimon/Upgrade First Scene (Ground & Street)";
+
+        /// <summary>Высота комнаты над землёй: примерно 4-5 этажей.</summary>
+        private const float RoomHeight = 15f;
 
         [MenuItem(MenuPath)]
         public static void RunFromMenu()
@@ -44,6 +51,29 @@ namespace GameLimon.EditorTools
 
         /// <summary>Для batch mode: Unity -executeMethod GameLimon.EditorTools.FirstSceneSetup.RunFromCommandLine</summary>
         public static void RunFromCommandLine() => Setup(interactive: false);
+
+        [MenuItem(UpgradeMenuPath)]
+        public static void UpgradeFromMenu()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("[FirstSceneSetup] Выйдите из Play Mode и повторите.");
+                return;
+            }
+
+            Scene scene = EditorSceneManager.OpenScene(ApartmentScenePath, OpenSceneMode.Single);
+            EnsureStreetLayout(scene);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Debug.Log("[FirstSceneSetup] Сцена обновлена: земля, комната поднята на высоту ~5 этажа, дверь телепортирует на улицу.");
+        }
 
         public static void Setup(bool interactive)
         {
@@ -77,9 +107,10 @@ namespace GameLimon.EditorTools
                 $"- Игрок: {(playerCreated ? "создан" : "уже был")} — {PlayerPrefabPath}\n" +
                 $"- Boot: игрок в сцене — {BootScenePath}\n" +
                 $"- Сцена: {(sceneCreated ? "создана" : "уже была")} — {ApartmentScenePath}\n" +
+                "- Сцена: платформа-земля, комната на высоте ~5 этажа, дверь — телепорт на улицу\n" +
                 $"- Story: {SequencePath}\n" +
                 "- Build Settings: Boot = 0, A1_S01_Apartment = 1\n\n" +
-                "Дальше: Play из Boot.unity. WASD — ходьба, мышь — камера, E — взаимодействие.";
+                "Дальше: Play из Boot.unity. WASD — ходьба, мышь — камера, E — взаимодействие; дверь выводит на улицу.";
 
             Debug.Log(summary);
 
@@ -289,6 +320,9 @@ namespace GameLimon.EditorTools
             BuildInteractables(gameplay, prop);
             BuildLighting(lighting);
 
+            // Земля под комнатой, подъём на высоту этажей, дверь-телепорт на улицу.
+            EnsureStreetLayout(scene);
+
             EditorSceneManager.SaveScene(scene, ApartmentScenePath);
             Debug.Log($"[FirstSceneSetup] Создана сцена: {ApartmentScenePath}");
             return true;
@@ -343,6 +377,14 @@ namespace GameLimon.EditorTools
             SetString(doorInteractable, "flag", "A1_S01_LeftApartment");
             SetString(doorInteractable, "debugMessage", "Выход из квартиры (сцена 2 ещё не собрана).");
             SetBool(doorInteractable, "oneShot", true);
+
+            // Пробуждение: невидимый триггер над кроватью — лежащий игрок смотрит в потолок и видит его.
+            GameObject wake = CreateBox(parent, "BedWakeUp", new Vector3(-3.2f, 2.75f, -0.4f), new Vector3(1.4f, 0.3f, 1.4f), null);
+            wake.GetComponent<MeshRenderer>().enabled = false;
+            var wakeInteractable = wake.AddComponent<BedWakeUp>();
+            SetString(wakeInteractable, "prompt", "E — проснуться");
+            SetString(wakeInteractable, "flag", "A1_S01_WokeUp");
+            SetString(wakeInteractable, "debugMessage", "Игрок проснулся и встал.");
         }
 
         private static void BuildLighting(Transform parent)
@@ -360,6 +402,117 @@ namespace GameLimon.EditorTools
             key.color = new Color(0.6f, 0.7f, 1f);
             key.intensity = 0.15f;
             key.shadows = LightShadows.None;
+        }
+
+        // ------------------------------------------------------------------
+        // Земля и улица
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Поднимает комнату на высоту ~5 этажа, кладёт под ней большую платформу-землю
+        /// и превращает FrontDoor в телепорт на улицу. Идемпотентно.
+        /// </summary>
+        public static void EnsureStreetLayout(Scene scene)
+        {
+            Material asphalt = EnsureMaterial(AsphaltMaterialPath, new Color(0.28f, 0.28f, 0.3f), 0.35f);
+
+            Transform environment = FindOrCreateRoot(scene, "_Environment");
+
+            Transform ground = environment.Find("Ground");
+            if (ground == null)
+            {
+                // Платформа 120 x 120, верхняя грань на y = 0.
+                CreateBox(environment, "Ground", new Vector3(0f, -0.5f, 0f), new Vector3(120f, 1f, 120f), asphalt);
+                Debug.Log("[FirstSceneSetup] Добавлена платформа-земля 120x120 под сценой.");
+            }
+
+            RaiseToRoomLevel(environment, "Ground");
+            RaiseToRoomLevel(FindOrCreateRoot(scene, "_Gameplay"));
+            RaiseToRoomLevel(FindOrCreateRoot(scene, "_Lighting"));
+
+            Transform systems = FindOrCreateRoot(scene, "_Systems");
+            RaiseToRoomLevel(systems);
+
+            // Точка телепорта на улице — после подъёма, чтобы не попасть в RoomLevel.
+            Transform streetSpawn = systems.Find("StreetSpawn");
+            if (streetSpawn == null)
+            {
+                var streetObject = new GameObject("StreetSpawn");
+                streetObject.transform.SetParent(systems, false);
+                // Игрок смотрит вдоль улицы, от дома.
+                streetObject.transform.SetPositionAndRotation(
+                    new Vector3(0f, 0.05f, -12f),
+                    Quaternion.LookRotation(Vector3.forward));
+                streetSpawn = streetObject.transform;
+            }
+
+            // Дверь прихожей: теперь телепорт на улицу.
+            Transform gameplay = FindOrCreateRoot(scene, "_Gameplay");
+            Transform door = gameplay.Find("RoomLevel/FrontDoor");
+            if (door == null)
+                door = gameplay.Find("FrontDoor");
+
+            if (door != null)
+                ConfigureStreetDoor(door.gameObject, streetSpawn);
+            else
+                Debug.LogWarning("[FirstSceneSetup] FrontDoor не найден — телепорт не настроен.");
+        }
+
+        /// <summary>Переносит всех детей root (кроме исключений) под группу RoomLevel на высоте комнаты.</summary>
+        private static void RaiseToRoomLevel(Transform root, params string[] excludedNames)
+        {
+            if (root.Find("RoomLevel") != null)
+                return; // уже поднято
+
+            Transform level = new GameObject("RoomLevel").transform;
+            level.SetParent(root, false);
+
+            for (int i = root.childCount - 1; i >= 0; i--)
+            {
+                Transform child = root.GetChild(i);
+
+                if (child == level)
+                    continue;
+
+                if (excludedNames != null && System.Array.IndexOf(excludedNames, child.name) >= 0)
+                    continue;
+
+                child.SetParent(level, true); // мировые позиции сохраняются
+            }
+
+            // Группа собрана в (0,0,0) — теперь поднимаем её вместе с содержимым.
+            level.position = new Vector3(0f, RoomHeight, 0f);
+        }
+
+        /// <summary>Заменяет FlagInteractable двери на телепорт на улицу.</summary>
+        private static void ConfigureStreetDoor(GameObject door, Transform destination)
+        {
+            foreach (Component component in door.GetComponents<Component>())
+            {
+                if (component is FlagInteractable)
+                    Object.DestroyImmediate(component);
+            }
+
+            TeleportInteractable teleport = door.GetComponent<TeleportInteractable>();
+            if (teleport == null)
+                teleport = door.AddComponent<TeleportInteractable>();
+
+            SetString(teleport, "prompt", "E — выйти на улицу");
+            SetString(teleport, "flag", "A1_S01_LeftApartment");
+            SetString(teleport, "debugMessage", "Телепортация на улицу.");
+            SetObjectReference(teleport, "destination", destination);
+            SetBool(teleport, "oneShot", false);
+        }
+
+        private static Transform FindOrCreateRoot(Scene scene, string name)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                if (root.name == name)
+                    return root.transform;
+            }
+
+            return CreateRoot(name);
         }
 
         private static void CreatePointLight(Transform parent, string name, Vector3 position, Color color, float intensity, float range)
