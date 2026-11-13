@@ -69,3 +69,7 @@ Desktop.ini
 # Docs (not published)
 /docs/
 docs/
+
+# OpenCode (local config, not published)
+.opencode/
+opencode.json
