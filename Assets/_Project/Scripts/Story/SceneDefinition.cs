@@ -2,10 +2,7 @@ using UnityEngine;
 
 namespace GameLimon.Story
 {
-    /// <summary>
-    /// Одна сцена туннеля: id, имя сцены из Build Settings и стартовый чекпоинт.
-    /// Ассеты лежат в Data/Story. Формат имён сцен: A1_S01_Apartment.
-    /// </summary>
+    /// <summary> Одна сцена туннеля </summary>
     [CreateAssetMenu(fileName = "SCN_NewScene", menuName = "GameLimon/Story/Scene Definition")]
     public sealed class SceneDefinition : ScriptableObject
     {

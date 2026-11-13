@@ -5,8 +5,7 @@ using UnityEngine;
 namespace GameLimon.Save
 {
     /// <summary>
-    /// Сохранения: JSON-снапшоты GameState в Application.persistentDataPath.
-    /// Когда сохранять (чекпоинты) решает GameFlow — здесь только запись и чтение.
+    /// Когда сохранять решает - GameFlow.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class SaveService : MonoBehaviour

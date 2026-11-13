@@ -5,12 +5,7 @@ using UnityEngine;
 
 namespace GameLimon.Core
 {
-    /// <summary>
-    /// Корневой объект Boot и единственный владелец глобальных сервисов.
-    /// Сцены не создают своих менеджеров — ссылки берутся отсюда
-    /// (через сериализованные поля или события).
-    /// Boot всегда загружена, поэтому DontDestroyOnLoad не нужен.
-    /// </summary>
+
     [DisallowMultipleComponent]
     public sealed class GameRoot : MonoBehaviour
     {
@@ -28,7 +23,7 @@ namespace GameLimon.Core
         {
             if (Instance != null && Instance != this)
             {
-                Debug.LogWarning("[GameRoot] Найден второй GameRoot — уничтожен. GameRoot должен быть один, в Boot.", this);
+                Debug.LogWarning("[GameRoot] GameRoot уничтожен", this);
                 Destroy(gameObject);
                 return;
             }
@@ -43,7 +38,7 @@ namespace GameLimon.Core
             UI = GetComponent<UIRoot>();
             Input = GetComponent<InputReader>();
 
-            Debug.Log("[GameRoot] Сервисы инициализированы. Boot готов.", this);
+            Debug.Log("[GameRoot] OK", this);
         }
 
         private void OnDestroy()

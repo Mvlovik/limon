@@ -8,8 +8,6 @@ namespace GameLimon.Core
 {
     /// <summary>
     /// Аддитивная загрузка/выгрузка игровых сцен поверх Boot.
-    /// Не знает про сюжет: имя сцены ему говорит GameFlow.
-    /// Сцена должна быть добавлена в Build Settings — иначе загрузка не начнётся.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class SceneLoader : MonoBehaviour
@@ -23,7 +21,7 @@ namespace GameLimon.Core
 
         public bool IsLoaded(string sceneName) => _loadedScenes.Contains(sceneName);
 
-        /// <summary>Аддитивно грузит сцену по имени. Возвращает Coroutine, на который можно ждать.</summary>
+        /// <summary>Аддитивно грузит сцену по имени</summary>
         public Coroutine LoadAdditive(string sceneName, Action onLoaded = null)
         {
             if (string.IsNullOrEmpty(sceneName))
@@ -35,7 +33,7 @@ namespace GameLimon.Core
 
             if (_loadedScenes.Contains(sceneName))
             {
-                Debug.LogWarning($"[SceneLoader] Сцена «{sceneName}» уже загружена.");
+                Debug.LogWarning($"[SceneLoader] Сцена \"{sceneName}\" уже загружена.");
                 onLoaded?.Invoke();
                 return null;
             }
@@ -43,7 +41,7 @@ namespace GameLimon.Core
             return StartCoroutine(LoadRoutine(sceneName, onLoaded));
         }
 
-        /// <summary>Выгружает ранее загруженную аддитивную сцену.</summary>
+        /// <summary>Выгружает ранее загруженную сцену</summary>
         public Coroutine Unload(string sceneName, Action onUnloaded = null)
         {
             if (string.IsNullOrEmpty(sceneName) || !_loadedScenes.Contains(sceneName))
@@ -63,7 +61,7 @@ namespace GameLimon.Core
             if (operation == null)
             {
                 IsBusy = false;
-                Debug.LogError($"[SceneLoader] Не удалось начать загрузку «{sceneName}». Сцена есть в Build Settings?");
+                Debug.LogError($"[SceneLoader] Не удалось начать загрузку \"{sceneName}\". Сцена есть в Build Settings?");
                 yield break;
             }
 
@@ -85,7 +83,7 @@ namespace GameLimon.Core
             if (operation == null)
             {
                 IsBusy = false;
-                Debug.LogError($"[SceneLoader] Не удалось начать выгрузку «{sceneName}».");
+                Debug.LogError($"[SceneLoader] Не удалось начать выгрузку \"{sceneName}\"");
                 yield break;
             }
 
@@ -94,7 +92,7 @@ namespace GameLimon.Core
             _loadedScenes.Remove(sceneName);
             IsBusy = false;
 
-            Debug.Log($"[SceneLoader] Выгружена: {sceneName}");
+            Debug.Log($"[SceneLoader] Выгружена: \"{sceneName}\"");
             SceneUnloaded?.Invoke(sceneName);
             onUnloaded?.Invoke();
         }

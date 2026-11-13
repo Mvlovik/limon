@@ -5,8 +5,7 @@ using UnityEngine.UI;
 namespace GameLimon.UI
 {
     /// <summary>
-    /// UI, живущий поверх Boot. Сейчас — только чёрная зашторка для переходов между сценами.
-    /// HUD, субтитры и пауза подключаются сюда позже (Scripts/UI), без игровой логики.
+    /// UI, живущий поверх Boot. 
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class UIRoot : MonoBehaviour
@@ -19,6 +18,9 @@ namespace GameLimon.UI
 
         public bool IsFading => _fadeRoutine != null;
 
+        /// <summary>Корневой Canvas (подсказки, HUD)</summary>
+        public Canvas Canvas => canvas;
+
         private void Awake()
         {
             if (canvas == null || fadeOverlay == null)
@@ -29,14 +31,14 @@ namespace GameLimon.UI
             }
         }
 
-        /// <summary>Назначает ссылки на канвас. Вызывается BootSetup при сборке префаба.</summary>
+        /// <summary>Назначает ссылки на канвас</summary>
         public void AssignReferences(Canvas builtCanvas, CanvasGroup builtFadeOverlay)
         {
             canvas = builtCanvas;
             fadeOverlay = builtFadeOverlay;
         }
 
-        /// <summary>Мгновенно выставить зашторку: 0 — прозрачно, 1 — чёрный экран.</summary>
+        /// <summary>Мгновенно выставить зашторку: 0 - прозрачно, 1 - чёрный экран.</summary>
         public void SetFade(float alpha)
         {
             if (_fadeRoutine != null)
@@ -49,7 +51,7 @@ namespace GameLimon.UI
                 fadeOverlay.alpha = Mathf.Clamp01(alpha);
         }
 
-        /// <summary>Плавно увести зашторку к целевой прозрачности. Возвращает Coroutine, на который можно ждать.</summary>
+        /// <summary>Плавно увести зашторку к целевой прозрачности.</summary>
         public Coroutine FadeTo(float alpha, float duration)
         {
             alpha = Mathf.Clamp01(alpha);
@@ -68,7 +70,6 @@ namespace GameLimon.UI
         }
 
         public Coroutine FadeOut() => FadeTo(1f, defaultFadeDuration);
-
         public Coroutine FadeIn() => FadeTo(0f, defaultFadeDuration);
 
         private IEnumerator FadeRoutine(float targetAlpha, float duration)
@@ -88,8 +89,7 @@ namespace GameLimon.UI
         }
 
         /// <summary>
-        /// Минимальный канвас с чёрной зашторкой. Используется BootSetup при сборке префаба
-        /// и как рантайм-фолбэк, если ссылки не назначены.
+        /// Минимальный канвас с чёрной зашторкой.
         /// </summary>
         public static DefaultCanvas BuildDefaultCanvas(Transform parent)
         {
@@ -98,15 +98,12 @@ namespace GameLimon.UI
 
             Canvas builtCanvas = canvasObject.AddComponent<Canvas>();
             builtCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            builtCanvas.sortingOrder = 1000; // поверх аддитивных игровых сцен
+            builtCanvas.sortingOrder = 1000;
 
             CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
-
-            // GraphicRaycaster не ставим: интерактивного UI пока нет,
-            // зашторка не должна перехватывать клики.
 
             var overlayObject = new GameObject("FadeOverlay");
             overlayObject.transform.SetParent(canvasObject.transform, false);

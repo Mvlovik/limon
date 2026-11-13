@@ -6,9 +6,7 @@ using UnityEngine;
 namespace GameLimon.Core
 {
     /// <summary>
-    /// Рантайм-состояние прохождения: флаги, выборы, текущая сцена и чекпоинт.
-    /// Сцены читают и пишут состояние сюда, локальные копии не хранят.
-    /// Выборы меняют флаги и параметры, но не архитектуру сцен.
+    /// Рантайм-состояние прохождения
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GameState : MonoBehaviour
@@ -28,7 +26,7 @@ namespace GameLimon.Core
         {
             if (string.IsNullOrEmpty(flag))
             {
-                Debug.LogWarning("[GameState] Пустое имя флага.");
+                Debug.LogWarning("[GameState] Пустое имя флага");
                 return;
             }
 
@@ -49,7 +47,7 @@ namespace GameLimon.Core
         {
             if (string.IsNullOrEmpty(id))
             {
-                Debug.LogWarning("[GameState] Пустое имя выбора.");
+                Debug.LogWarning("[GameState] Пустое имя выбора");
                 return;
             }
 
@@ -61,7 +59,7 @@ namespace GameLimon.Core
 
         public void SetCheckpoint(string checkpointId) => CurrentCheckpointId = checkpointId;
 
-        /// <summary>Снимок состояния для сохранения.</summary>
+        /// <summary>Снимок состояния для сохранения</summary>
         public GameStateSnapshot CaptureSnapshot()
         {
             var snapshot = new GameStateSnapshot
@@ -78,7 +76,7 @@ namespace GameLimon.Core
             return snapshot;
         }
 
-        /// <summary>Восстановление состояния из сейва.</summary>
+        /// <summary>Восстановление состояния из сейва</summary>
         public void ApplySnapshot(GameStateSnapshot snapshot)
         {
             if (snapshot == null)
@@ -102,7 +100,7 @@ namespace GameLimon.Core
             CurrentCheckpointId = snapshot.checkpointId;
         }
 
-        /// <summary>Сброс к началу (новая игра).</summary>
+        /// <summary>Сброс к началу (новая игра)</summary>
         public void Reset()
         {
             _flags.Clear();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using GameLimon.Audio;
 using GameLimon.Save;
 using GameLimon.Story;
 using GameLimon.UI;
@@ -8,8 +9,7 @@ using UnityEngine;
 namespace GameLimon.Core
 {
     /// <summary>
-    /// Движок «туннеля»: читает StorySequence и решает, какая сцена следующая.
-    /// Сцены не знают про следующую — они сообщают о завершении через CompleteCurrentScene().
+    /// Движок туннеля: читает StorySequence и решает, какая сцена следующая
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GameFlow : MonoBehaviour
@@ -33,7 +33,7 @@ namespace GameLimon.Core
         public int CurrentIndex => _currentIndex;
         public bool IsTransitioning => _isTransitioning;
 
-        /// <summary>Начать игру с первой сцены последовательности (кнопка «Новая игра» в MainMenu).</summary>
+   
         public void StartGame()
         {
             if (!ValidateSequence())
@@ -43,19 +43,19 @@ namespace GameLimon.Core
             StartCoroutine(TransitionRoutine(null, sequence.GetScene(0)));
         }
 
-        /// <summary>Текущая сцена закончилась. Что грузить дальше — решает GameFlow.</summary>
+        /// <summary>Текущая сцена закончилась. Что грузить дальше решает GameFlow</summary>
         public void CompleteCurrentScene()
         {
             if (!ValidateSequence() || _currentIndex < 0)
             {
-                Debug.LogWarning("[GameFlow] CompleteCurrentScene вызван, но игра не шла по туннелю (StartGame не запускался).");
+                Debug.LogWarning("[GameFlow] StartGame не запускался");
                 return;
             }
 
             int nextIndex = _currentIndex + 1;
             if (nextIndex >= sequence.Count)
             {
-                Debug.Log("[GameFlow] Последняя сцена завершена — финал.");
+                Debug.Log("[GameFlow] Последняя сцена завершена");
                 _currentIndex = -1;
                 _currentSceneName = null;
                 GameFinished?.Invoke();
@@ -66,7 +66,7 @@ namespace GameLimon.Core
             StartCoroutine(TransitionRoutine(_currentSceneName, sequence.GetScene(nextIndex)));
         }
 
-        /// <summary>Перезапустить текущую сцену с её стартового чекпоинта.</summary>
+        /// <summary>Перезапустить текущую сцену с её стартового чекпоинта</summary>
         public void RestartCurrentScene()
         {
             if (!ValidateSequence() || _currentIndex < 0)
@@ -75,7 +75,7 @@ namespace GameLimon.Core
             StartCoroutine(TransitionRoutine(_currentSceneName, sequence.GetScene(_currentIndex)));
         }
 
-        /// <summary>Продолжить сохранение: восстановить состояние и грузить сцену из сейва.</summary>
+        /// <summary>Продолжить сохранение: восстановить состояние и грузить сцену из сейва</summary>
         public void ContinueFromSave(GameStateSnapshot snapshot)
         {
             if (snapshot == null)
@@ -90,7 +90,7 @@ namespace GameLimon.Core
             int index = sequence.IndexOf(snapshot.sceneId);
             if (index < 0)
             {
-                Debug.LogWarning($"[GameFlow] Сцена «{snapshot.sceneId}» из сейва не найдена в {sequence.name}.");
+                Debug.LogWarning($"[GameFlow] Сцена {snapshot.sceneId} из сейва не найдена в {sequence.name}.");
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace GameLimon.Core
             if (sequence != null && sequence.Count > 0)
                 return true;
 
-            Debug.LogWarning("[GameFlow] StorySequence не назначена или пуста. Назначьте SEQ-ассет на GameRoot в Boot.");
+            Debug.LogWarning("[GameFlow] StorySequence не назначена или пуста");
             return false;
         }
 
@@ -112,29 +112,42 @@ namespace GameLimon.Core
         {
             if (next == null)
             {
-                Debug.LogWarning("[GameFlow] Пустая SceneDefinition (незаполненный слот в StorySequence?).");
+                Debug.LogWarning("[GameFlow] Пустая SceneDefinition");
                 yield break;
             }
 
             if (_isTransitioning)
             {
-                Debug.LogWarning("[GameFlow] Переход уже идёт.");
+                Debug.LogWarning("[GameFlow] Переход уже идёт");
                 yield break;
             }
 
             _isTransitioning = true;
 
+            // Не выгружаем текущую сцену, если следующей нет в Build Settings.
+            if (!Application.CanStreamedLevelBeLoaded(next.SceneName))
+            {
+                Debug.LogError($"[GameFlow] Сцена \"{next.SceneName}\" ({next.Id}) отсутствует в Build Settings — переход отменён.");
+                _isTransitioning = false;
+                yield break;
+            }
+
             GameRoot root = GameRoot.Instance;
             UIRoot ui = root != null ? root.UI : null;
             SceneLoader loader = root != null ? root.Loader : null;
             GameState state = root != null ? root.State : null;
+            AudioDirector audio = root != null ? root.Audio : null;
 
             if (ui != null)
                 yield return ui.FadeTo(1f, fadeDuration);
 
+            // Музыка сцены не должна переезжать в следующую сцену.
+            if (audio != null)
+                audio.StopMusic(fadeDuration);
+
             if (loader == null)
             {
-                Debug.LogError("[GameFlow] SceneLoader не найден на GameRoot.");
+                Debug.LogError("[GameFlow] SceneLoader не найден на GameRoot");
                 _isTransitioning = false;
                 yield break;
             }
@@ -146,7 +159,7 @@ namespace GameLimon.Core
 
             if (!loader.IsLoaded(next.SceneName))
             {
-                Debug.LogError($"[GameFlow] Сцена «{next.SceneName}» не загрузилась. Она есть в Build Settings?");
+                Debug.LogError($"[GameFlow] Сцена {next.SceneName} не загрузилась");
                 if (ui != null)
                     yield return ui.FadeTo(0f, fadeDuration);
                 _isTransitioning = false;

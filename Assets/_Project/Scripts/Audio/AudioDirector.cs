@@ -4,9 +4,9 @@ using UnityEngine;
 namespace GameLimon.Audio
 {
     /// <summary>
-    /// Общий звук поверх Boot: музыка и амбиент, кроссфейды, громкости.
+    /// Общий звук: музыка и амбиент, кроссфейды, громкости.
     /// Точечные звуки и амбиент-зоны живут в сценах, но используют общий микс.
-    /// TODO: когда появится Assets/_Project/Audio/Mixers — громкости через AudioMixer.
+    /// !!! НООО Assets/_Project/Audio/Mixers громкости через AudioMixer.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class AudioDirector : MonoBehaviour
@@ -29,7 +29,7 @@ namespace GameLimon.Audio
             {
                 source.playOnAwake = false;
                 source.loop = true;
-                source.spatialBlend = 0f; // 2D: музыка и общий амбиент
+                source.spatialBlend = 0f;
                 source.volume = 0f;
             }
         }

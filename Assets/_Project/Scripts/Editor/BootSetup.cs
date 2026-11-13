@@ -12,14 +12,7 @@ using UnityEngine.SceneManagement;
 
 namespace GameLimon.EditorTools
 {
-    /// <summary>
-    /// Разовая сборка каркаса Boot по docs/ARCHITECTURE.md («Первые шаги», п. 1–2):
-    /// префаб PF_GameRoot со всеми сервисами, сцена Boot.unity с ним и Build Settings (Boot — индекс 0).
-    /// По правилам проекта .unity/.prefab руками не редактируем — только через Unity API.
-    ///
-    /// Запуск: Tools → GameLimon → Setup Boot Scene,
-    /// либо batch: Unity -batchmode -executeMethod GameLimon.EditorTools.BootSetup.RunFromCommandLine
-    /// </summary>
+
     public static class BootSetup
     {
         private const string PrefabPath = "Assets/_Project/Prefabs/Systems/PF_GameRoot.prefab";

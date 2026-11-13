@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "unity-open-mcp": {
+        "type": "local",
+        "command": [
+          "C:\\Program Files\\nodejs\\node.exe",
+          "C:\\Users\\Artem\\AppData\\Local\\unity-open-mcp-server\\node_modules\\unity-open-mcp\\dist\\index.js",
+          "--project-from-cwd"
+        ],
+        "environment": {}
+      }
+    }
+  }
+}

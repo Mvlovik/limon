@@ -4,9 +4,7 @@ using System.Collections.Generic;
 namespace GameLimon.Save
 {
     /// <summary>
-    /// Сериализуемая модель сохранения (JsonUtility: публичные поля, без словарей).
-    /// Хватает, чтобы продолжить с начала отрезка, а не с середины катсцены:
-    /// id сцены, id чекпоинта, флаги, выборы.
+    /// Сериализуемая модель сохранения (id сцены, id чекпоинта, флаги, выборы)
     /// </summary>
     [Serializable]
     public class GameStateSnapshot
