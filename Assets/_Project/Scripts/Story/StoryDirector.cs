@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using GameLimon.Audio;
 using GameLimon.Core;
 using GameLimon.UI;
 using UnityEngine;
@@ -205,6 +206,10 @@ namespace GameLimon.Story
                     case StoryActionType.Log:
                         Debug.Log($"[Story] {action.Message}");
                         break;
+
+                    case StoryActionType.HideObjective:
+                        ObjectiveUI.Instance?.Hide();
+                        break;
                 }
             }
         }
@@ -213,8 +218,20 @@ namespace GameLimon.Story
         {
             if (sequence == null) yield break;
 
+            AudioDirector audio = GameRoot.Instance != null ? GameRoot.Instance.Audio : null;
+
+            // Музыка и указание — часть той же «системы мыслей», запускаются вместе с репликами.
+            if (sequence.Music != null && audio != null)
+                audio.PlayMusic(sequence.Music);
+
+            if (sequence.Objective != null)
+                ObjectiveUI.Ensure()?.Show(sequence.Objective);
+
             for (int i = 0; i < sequence.Count; i++)
                 yield return PlayLineRoutine(sequence.GetLine(i));
+
+            if (sequence.StopMusicAfter && audio != null)
+                audio.StopMusic();
         }
 
         private IEnumerator PlayLineRoutine(ThoughtLine line)

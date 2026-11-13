@@ -29,7 +29,7 @@ namespace GameLimon.Audio
             {
                 source.playOnAwake = false;
                 source.loop = true;
-                source.spatialBlend = 0f; // 2D: музыка и общий амбиент
+                source.spatialBlend = 0f;
                 source.volume = 0f;
             }
         }

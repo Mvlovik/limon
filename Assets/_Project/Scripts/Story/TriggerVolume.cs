@@ -37,6 +37,15 @@ namespace GameLimon.Story
         [Tooltip("Блокировать управление, пока проигрываются действия (скриптовый бит).")]
         [SerializeField] private bool lockPlayerWhileRunning;
 
+#if UNITY_EDITOR
+        [Header("Отладка (Scene View)")]
+        [Tooltip("Рисовать границы зоны в Scene View.")]
+        [SerializeField] private bool showGizmo = true;
+
+        [Tooltip("Цвет границ зоны.")]
+        [SerializeField] private Color gizmoColor = new Color(1f, 0.75f, 0.2f, 0.9f);
+#endif
+
         private bool _enterConsumed;
         private bool _exitConsumed;
 
@@ -46,6 +55,59 @@ namespace GameLimon.Story
             if (volume != null)
                 volume.isTrigger = true;
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmos()
+        {
+            if (!showGizmo)
+                return;
+
+            Collider volume = GetComponent<Collider>();
+            if (volume == null)
+                return;
+
+            bool selected = UnityEditor.Selection.activeGameObject == gameObject;
+
+            Color color = gizmoColor;
+            if (selected)
+                color.a = 1f;
+
+            Gizmos.color = color;
+
+            if (volume is BoxCollider box)
+            {
+                Matrix4x4 previous = Gizmos.matrix;
+                Gizmos.matrix = box.transform.localToWorldMatrix;
+                Gizmos.DrawWireCube(box.center, box.size);
+
+                if (selected)
+                {
+                    Color fill = color;
+                    fill.a = 0.12f;
+                    Gizmos.color = fill;
+                    Gizmos.DrawCube(box.center, box.size);
+                }
+
+                Gizmos.matrix = previous;
+            }
+            else
+            {
+                Bounds bounds = volume.bounds;
+                Gizmos.DrawWireCube(bounds.center, bounds.size);
+
+                if (selected)
+                {
+                    Color fill = color;
+                    fill.a = 0.12f;
+                    Gizmos.color = fill;
+                    Gizmos.DrawCube(bounds.center, bounds.size);
+                }
+            }
+
+            if (selected)
+                UnityEditor.Handles.Label(volume.bounds.center + Vector3.up * (volume.bounds.extents.y + 0.3f), name);
+        }
+#endif
 
         private void OnTriggerEnter(Collider other)
         {

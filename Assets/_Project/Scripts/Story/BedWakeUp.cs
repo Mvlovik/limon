@@ -21,8 +21,11 @@ namespace GameLimon.Story
         [SerializeField] private string debugMessage = "Игрок проснулся и встал.";
 
         [Header("Реплика при пробуждении")]
-        [Tooltip("Первая реплика (текст и/или озвучка в поле voice). Играет в момент пробуждения.")]
+        [Tooltip("Первая реплика (текст и/или озвучка в поле voice). Играет в момент пробуждения, если не задана последовательность.")]
         [SerializeField] private ThoughtLine wakeLine;
+
+        [Tooltip("Последовательность мыслей: субтитры, озвучка, музыка и указание игроку — всё в одном ассете.")]
+        [SerializeField] private ThoughtSequence wakeSequence;
 
         [Header("Тайминги анимации")]
         [Tooltip("Фаза 1: сесть на кровати, сек.")]
@@ -139,7 +142,9 @@ namespace GameLimon.Story
         {
             _waking = true;
 
-            if (wakeLine != null)
+            if (wakeSequence != null)
+                StoryDirector.Ensure().Play(wakeSequence);
+            else if (wakeLine != null)
                 StoryDirector.Ensure().PlayLine(wakeLine);
 
             // Фаза 1 садимся.

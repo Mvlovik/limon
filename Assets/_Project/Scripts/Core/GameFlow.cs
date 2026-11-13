@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using GameLimon.Audio;
 using GameLimon.Save;
 using GameLimon.Story;
 using GameLimon.UI;
@@ -135,9 +136,14 @@ namespace GameLimon.Core
             UIRoot ui = root != null ? root.UI : null;
             SceneLoader loader = root != null ? root.Loader : null;
             GameState state = root != null ? root.State : null;
+            AudioDirector audio = root != null ? root.Audio : null;
 
             if (ui != null)
                 yield return ui.FadeTo(1f, fadeDuration);
+
+            // Музыка сцены не должна переезжать в следующую сцену.
+            if (audio != null)
+                audio.StopMusic(fadeDuration);
 
             if (loader == null)
             {

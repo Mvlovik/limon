@@ -13,7 +13,8 @@ namespace GameLimon.Story
         Fade,
         CompleteScene,
         RestartScene,
-        Log
+        Log,
+        HideObjective
     }
 
     /// <summary>

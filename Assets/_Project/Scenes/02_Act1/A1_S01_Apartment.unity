@@ -258,6 +258,7 @@ GameObject:
   - component: {fileID: 250522487}
   - component: {fileID: 250522486}
   - component: {fileID: 250522485}
+  - component: {fileID: 250522488}
   m_Layer: 0
   m_Name: Kitchen_HalfWall
   m_TagString: Untagged
@@ -358,6 +359,30 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 250522483}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &250522488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 250522483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff010ab337f3384a89b9941137d9088, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Interaction.StoryActionInteractable
+  prompt: "E \u2014 \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C"
+  oneShot: 0
+  actions:
+  - type: 7
+    flag: 
+    thought: {fileID: 0}
+    clip: {fileID: 0}
+    volume: 0
+    spatial: 0
+    duration: 0
+    fadeAlpha: 0
+    message: 
 --- !u!1 &326947126
 GameObject:
   m_ObjectHideFlags: 0
@@ -1056,6 +1081,24 @@ MonoBehaviour:
   - type: 1
     flag: A1_S01_CoffeeStarted
     thought: {fileID: 0}
+    clip: {fileID: 0}
+    volume: 0
+    spatial: 0
+    duration: 0
+    fadeAlpha: 0
+    message: 
+  - type: 9
+    flag: 
+    thought: {fileID: 0}
+    clip: {fileID: 0}
+    volume: 0
+    spatial: 0
+    duration: 0
+    fadeAlpha: 0
+    message: 
+  - type: 3
+    flag: 
+    thought: {fileID: 11400000, guid: 31b11498a9b1f5e47b32fda117674a83, type: 2}
     clip: {fileID: 0}
     volume: 0
     spatial: 0
@@ -2782,6 +2825,7 @@ MonoBehaviour:
   flag: A1_S01_WokeUp
   debugMessage: "\u0418\u0433\u0440\u043E\u043A \u043F\u0440\u043E\u0441\u043D\u0443\u043B\u0441\u044F \u0438 \u0432\u0441\u0442\u0430\u043B."
   wakeLine: {fileID: 11400000, guid: 8d478b31d97c4f84eaf245af75c2842b, type: 2}
+  wakeSequence: {fileID: 11400000, guid: 0beff232350617744958d1ddf499c890, type: 2}
   sitUpDuration: 1
   standUpDuration: 1.2
 --- !u!23 &1726800691
