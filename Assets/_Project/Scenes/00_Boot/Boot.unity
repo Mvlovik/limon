@@ -188,6 +188,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_GameRoot
       objectReference: {fileID: 0}
+    - target: {fileID: 6462926884867054736, guid: ac13579b944a2484abbac45fad277c12, type: 3}
+      propertyPath: allowInBuilds
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6462926884867054736, guid: ac13579b944a2484abbac45fad277c12, type: 3}
+      propertyPath: debugStartScene
+      value: 
+      objectReference: {fileID: 11400000, guid: 5b9ca2ac0f46e56489159987b3969c8d, type: 2}
     - target: {fileID: 8065005940191600416, guid: ac13579b944a2484abbac45fad277c12, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -40,13 +40,4 @@ MonoBehaviour:
     icon: {fileID: 0}
     completionFlag: A1_S01_LeftApartment
     onStart: []
-  onCompleted:
-  - type: 0
-    flag: 
-    thought: {fileID: 0}
-    clip: {fileID: 0}
-    volume: 0
-    spatial: 0
-    duration: 0
-    fadeAlpha: 0
-    message: 
+  onCompleted: []

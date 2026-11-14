@@ -34,13 +34,19 @@ namespace GameLimon.Core
         public bool IsTransitioning => _isTransitioning;
 
    
-        public void StartGame()
+        public void StartGame(int startIndex = 0)
         {
             if (!ValidateSequence())
                 return;
 
-            _currentIndex = 0;
-            StartCoroutine(TransitionRoutine(null, sequence.GetScene(0)));
+            if (startIndex < 0 || startIndex >= sequence.Count)
+            {
+                Debug.LogWarning($"[GameFlow] Некорректный стартовый индекс {startIndex}, начинаю с первой сцены.");
+                startIndex = 0;
+            }
+
+            _currentIndex = startIndex;
+            StartCoroutine(TransitionRoutine(null, sequence.GetScene(startIndex)));
         }
 
         /// <summary>Текущая сцена закончилась. Что грузить дальше решает GameFlow</summary>
