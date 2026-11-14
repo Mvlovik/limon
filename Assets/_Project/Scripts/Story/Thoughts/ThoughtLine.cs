@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace GameLimon.Story
 {
-    /// <summary>  Субтитры Assets/_Project/Data/Dialogues/THT_*. </summary>
+    /// <summary>  Субтитры Assets/_Project/Data/Dialogues/THT_* </summary>
     [CreateAssetMenu(fileName = "THT_NewLine", menuName = "GameLimon/Story/Thought Line")]
     public sealed class ThoughtLine : ScriptableObject
     {
@@ -15,9 +15,6 @@ namespace GameLimon.Story
 
         [Tooltip("Озвучка мысли")]
         [SerializeField] private AudioClip voice;
-
-
-
 
         public string Text => text;
         public float Duration => duration;

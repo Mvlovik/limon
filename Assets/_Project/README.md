@@ -11,5 +11,6 @@
 - `UI/` — шрифты, спрайты, раскладки.
 
 Полное описание, правила именования и схема рантайма: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+Квесты и гейты шагов: [docs/QUESTS.md](../../docs/QUESTS.md).
 
 Git-процесс: [docs/GIT_WORKFLOW.md](../../docs/GIT_WORKFLOW.md).

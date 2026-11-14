@@ -73,3 +73,7 @@ docs/
 # OpenCode (local config, not published)
 .opencode/
 opencode.json
+
+# Local MCP bridge packages (installed for this machine only)
+/Packages/com.alexeyperov.unity-open-mcp-bridge/
+/Packages/com.alexeyperov.unity-open-mcp-verify/

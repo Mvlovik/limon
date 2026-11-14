@@ -16,4 +16,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8d478b31d97c4f84eaf245af75c2842b, type: 2}
   music: {fileID: 8300000, guid: 31e27efad8b2d174a988876705db419d, type: 3}
   stopMusicAfter: 0
-  objective: {fileID: 11400000, guid: c552d8c25215bfe4798cee27195f5235, type: 2}
+  objective: {fileID: 0}

@@ -8,33 +8,37 @@ namespace GameLimon.Story
 {
     /// <summary>
     /// Зона-триггер: проигрывает StoryAction при входе/выходе игрока.
-    /// Вешается на объект с Collider (isTrigger включается автоматически).
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public sealed class TriggerVolume : MonoBehaviour
     {
-        [Tooltip("Тег игрока.")]
+        [Tooltip("Тег игрока")]
         [SerializeField] private string playerTag = "Player";
 
+        [Header("Квест")]
+        [Tooltip("Разрешить срабатывание только пока квест ждёт этот флаг")]
+        [QuestStep]
+        [SerializeField] private string requiredStep;
+
         [Header("Действия")]
-        [Tooltip("Действия при входе игрока в зону.")]
+        [Tooltip("Действия при входе игрока в зону")]
         [SerializeField] private List<StoryAction> onEnter = new List<StoryAction>();
 
-        [Tooltip("Действия при выходе игрока из зоны.")]
+        [Tooltip("Действия при выходе игрока из зоны")]
         [SerializeField] private List<StoryAction> onExit = new List<StoryAction>();
 
         [Header("Повторы")]
-        [Tooltip("Сработать только один раз за загрузку сцены.")]
+        [Tooltip("Сработать только один раз за загрузку сцены")]
         [SerializeField] private bool once = true;
 
-        [Tooltip("Не срабатывать, если этот флаг уже стоит.")]
+        [Tooltip("Скипать, если этот флаг уже стоит")]
         [SerializeField] private string skipIfFlag;
 
-        [Tooltip("Флаг, который ставится после срабатывания.")]
+        [Tooltip("Флаг, который ставится после срабатывания")]
         [SerializeField] private string completedFlag;
 
         [Header("Постановка")]
-        [Tooltip("Блокировать управление, пока проигрываются действия (скриптовый бит).")]
+        [Tooltip("Блокировать управление, пока проигрываются действия (скриптовый бит)")]
         [SerializeField] private bool lockPlayerWhileRunning;
 
 #if UNITY_EDITOR
@@ -48,6 +52,7 @@ namespace GameLimon.Story
 
         private bool _enterConsumed;
         private bool _exitConsumed;
+        private bool _stayConsumed;
 
         private void Reset()
         {
@@ -109,26 +114,34 @@ namespace GameLimon.Story
         }
 #endif
 
+        public string RequiredStep => requiredStep;
+
         private void OnTriggerEnter(Collider other)
         {
-            if (!IsPlayer(other) || _enterConsumed)
-                return;
+            if (!IsPlayer(other) || _enterConsumed) return;
 
-            if (once)
-                _enterConsumed = true;
-
-            Fire(onEnter);
+            if (Fire(onEnter)) {
+                _stayConsumed = true;
+                if (once) _enterConsumed = true;
+            }
         }
 
         private void OnTriggerExit(Collider other)
         {
-            if (!IsPlayer(other) || _exitConsumed)
+            if (!IsPlayer(other) || _exitConsumed) return;
+            if (Fire(onExit) && once) _exitConsumed = true;
+            _stayConsumed = false;
+        }
+
+        private void OnTriggerStay(Collider other)
+        {
+            if (!IsPlayer(other) || _enterConsumed || _stayConsumed)
                 return;
 
-            if (once)
-                _exitConsumed = true;
-
-            Fire(onExit);
+            if (Fire(onEnter)) {
+                _stayConsumed = true;
+                if (once) _enterConsumed = true;
+            }
         }
 
         private bool IsPlayer(Collider other)
@@ -136,23 +149,28 @@ namespace GameLimon.Story
             return other != null && other.CompareTag(playerTag);
         }
 
-        private void Fire(List<StoryAction> actions)
+        /// <summary>Возвращает true, если триггер был использован и его можно пометить как использованный</summary>
+        private bool Fire(List<StoryAction> actions)
         {
-            if (actions == null || actions.Count == 0)
-                return;
+            if (!string.IsNullOrEmpty(requiredStep) && !QuestDirector.IsStepActive(requiredStep))
+                return false;
 
             GameState state = GameRoot.Instance != null ? GameRoot.Instance.State : null;
 
             if (state != null && !string.IsNullOrEmpty(skipIfFlag) && state.GetFlag(skipIfFlag))
-                return;
+                return true;
 
             if (state != null && !string.IsNullOrEmpty(completedFlag))
                 state.SetFlag(completedFlag, true);
+
+            if (actions == null || actions.Count == 0)
+                return true;
 
             if (lockPlayerWhileRunning)
                 StartCoroutine(RunLocked(actions));
             else
                 StoryDirector.Ensure().Run(actions, transform.position);
+            return true;
         }
 
         private IEnumerator RunLocked(List<StoryAction> actions)
@@ -161,19 +179,14 @@ namespace GameLimon.Story
             PlayerMotor motor = player != null ? player.GetComponent<PlayerMotor>() : null;
             PlayerLook look = player != null ? player.GetComponent<PlayerLook>() : null;
 
-            if (motor != null)
-                motor.SetControlLocked(true);
+            if (motor != null) motor.SetControlLocked(true);
 
-            if (look != null)
-                look.PoseLocked = true;
+            if (look != null) look.PoseLocked = true;
 
             yield return StoryDirector.Ensure().RunBlocking(actions, transform.position);
 
-            if (motor != null)
-                motor.SetControlLocked(false);
-
-            if (look != null)
-                look.PoseLocked = false;
+            if (motor != null) motor.SetControlLocked(false);
+            if (look != null) look.PoseLocked = false;
         }
     }
 }
