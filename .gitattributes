@@ -4,7 +4,7 @@
 * text=auto eol=lf
 
 *.cs            text diff=csharp
-*.unity         text
+*.unity         filter=lfs diff=lfs merge=lfs -text
 *.prefab        text
 *.mat           text
 *.anim          text
