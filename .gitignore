@@ -66,6 +66,10 @@ Desktop.ini
 # Unity upgrade log
 /[Uu]pgradeLog.htm
 
+# Unity crash/recovery data
+/Assets/_Recovery/
+/Assets/_Recovery.meta
+
 # Docs (not published)
 /docs/
 docs/

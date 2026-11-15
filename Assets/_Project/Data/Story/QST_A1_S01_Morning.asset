@@ -20,15 +20,15 @@ MonoBehaviour:
     icon: {fileID: 0}
     completionFlag: A1_S01_WokeUp
     onStart: []
-  - title: "\u041F\u0440\u043E\u0439\u0442\u0438 \u0432 \u043F\u0440\u0438\u0445\u043E\u0436\u0443\u044E"
-    objectiveText: "\u0412\u044B\u0439\u0442\u0438 \u0432 \u043F\u0440\u0438\u0445\u043E\u0436\u0443\u044E"
-    icon: {fileID: 0}
-    completionFlag: A1_S01_HallTrigger
-    onStart: []
   - title: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u043A\u043E\u0444\u0435\u043C\u0430\u0448\u0438\u043D\u0443"
     objectiveText: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u043A\u043E\u0444\u0435\u043C\u0430\u0448\u0438\u043D\u0443"
     icon: {fileID: 0}
     completionFlag: A1_S01_CoffeeStarted
+    onStart: []
+  - title: "\u041F\u0440\u043E\u0439\u0442\u0438 \u0432 \u043F\u0440\u0438\u0445\u043E\u0436\u0443\u044E"
+    objectiveText: "\u0412\u044B\u0439\u0442\u0438 \u0432 \u043F\u0440\u0438\u0445\u043E\u0436\u0443\u044E"
+    icon: {fileID: 0}
+    completionFlag: A1_S01_HallTrigger
     onStart: []
   - title: "\u0412\u0437\u044F\u0442\u044C \u0432\u0435\u0449\u0438"
     objectiveText: "\u0412\u0437\u044F\u0442\u044C \u0432\u0435\u0449\u0438"
