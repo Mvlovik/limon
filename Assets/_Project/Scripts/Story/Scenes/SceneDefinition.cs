@@ -18,9 +18,13 @@ namespace GameLimon.Story
         [Tooltip("Id стартового чекпоинта сцены.")]
         [SerializeField] private string checkpointId;
 
+        [Tooltip("Линейный квест, который запускается (или продолжается) при входе в сцену. Может быть пустым.")]
+        [SerializeField] private QuestDefinition quest;
+
         public string Id => id;
         public string SceneName => sceneName;
         public string DisplayName => displayName;
         public string CheckpointId => checkpointId;
+        public QuestDefinition Quest => quest;
     }
 }

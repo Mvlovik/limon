@@ -9,18 +9,18 @@ using UnityEngine;
 namespace GameLimon.Core
 {
     /// <summary>
-    /// Движок туннеля: читает StorySequence и решает, какая сцена следующая
+    /// Читает StorySequence и решает, какая сцена следующая
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GameFlow : MonoBehaviour
     {
-        [Tooltip("Порядок сцен. Задаётся данными (Data/Story/SEQ_*), не хардкодом.")]
+        [Tooltip("Порядок сцен. Задаётся в Data/Story/SEQ_*")]
         [SerializeField] private StorySequence sequence;
 
-        [Tooltip("Сохранять чекпоинт на старте каждой сцены.")]
+        [Tooltip("Сохранять чекпоинт на старте каждой сцены")]
         [SerializeField] private bool saveOnSceneStart = true;
 
-        [Tooltip("Длительность затемнения при переходах, секунды.")]
+        [Tooltip("Время затемнения при переходах")]
         [SerializeField] private float fadeDuration = 0.5f;
 
         private int _currentIndex = -1;
@@ -34,18 +34,33 @@ namespace GameLimon.Core
         public bool IsTransitioning => _isTransitioning;
 
    
-        public void StartGame()
+        public void StartGame(int startIndex = 0)
         {
             if (!ValidateSequence())
                 return;
 
-            _currentIndex = 0;
-            StartCoroutine(TransitionRoutine(null, sequence.GetScene(0)));
+            if (startIndex < 0 || startIndex >= sequence.Count)
+            {
+                Debug.LogWarning($"[GameFlow] Некорректный стартовый индекс {startIndex}, начинаю с первой сцены.");
+                startIndex = 0;
+            }
+
+            _currentIndex = startIndex;
+            StartCoroutine(TransitionRoutine(null, sequence.GetScene(startIndex)));
         }
 
         /// <summary>Текущая сцена закончилась. Что грузить дальше решает GameFlow</summary>
         public void CompleteCurrentScene()
         {
+            if (QuestDirector.Instance != null && QuestDirector.Instance.BlocksSceneExit)
+            {
+                Debug.LogWarning(
+                    $"[GameFlow] Нельзя завершить сцену: квест '{QuestDirector.Instance.ActiveQuest.DisplayName}' " +
+                    $"ещё на шаге {QuestDirector.Instance.CurrentStepIndex + 1}",
+                    QuestDirector.Instance.ActiveQuest);
+                return;
+            }
+
             if (!ValidateSequence() || _currentIndex < 0)
             {
                 Debug.LogWarning("[GameFlow] StartGame не запускался");
@@ -66,16 +81,14 @@ namespace GameLimon.Core
             StartCoroutine(TransitionRoutine(_currentSceneName, sequence.GetScene(nextIndex)));
         }
 
-        /// <summary>Перезапустить текущую сцену с её стартового чекпоинта</summary>
+        /// <summary>Перезапустить текгщую сцену</summary>
         public void RestartCurrentScene()
         {
-            if (!ValidateSequence() || _currentIndex < 0)
-                return;
-
+            if (!ValidateSequence() || _currentIndex < 0) return;
             StartCoroutine(TransitionRoutine(_currentSceneName, sequence.GetScene(_currentIndex)));
         }
 
-        /// <summary>Продолжить сохранение: восстановить состояние и грузить сцену из сейва</summary>
+        /// <summary>Восстановить состояние и грузить сцену из сейва</summary>
         public void ContinueFromSave(GameStateSnapshot snapshot)
         {
             if (snapshot == null)
@@ -101,9 +114,7 @@ namespace GameLimon.Core
 
         private bool ValidateSequence()
         {
-            if (sequence != null && sequence.Count > 0)
-                return true;
-
+            if (sequence != null && sequence.Count > 0) return true;
             Debug.LogWarning("[GameFlow] StorySequence не назначена или пуста");
             return false;
         }
@@ -124,10 +135,11 @@ namespace GameLimon.Core
 
             _isTransitioning = true;
 
+
             // Не выгружаем текущую сцену, если следующей нет в Build Settings.
             if (!Application.CanStreamedLevelBeLoaded(next.SceneName))
             {
-                Debug.LogError($"[GameFlow] Сцена \"{next.SceneName}\" ({next.Id}) отсутствует в Build Settings — переход отменён.");
+                Debug.LogError($"[GameFlow] Сцена \"{next.SceneName}\" ({next.Id}) отсутствует в Build Settings - перехода нет(");
                 _isTransitioning = false;
                 yield break;
             }
@@ -138,10 +150,9 @@ namespace GameLimon.Core
             GameState state = root != null ? root.State : null;
             AudioDirector audio = root != null ? root.Audio : null;
 
-            if (ui != null)
-                yield return ui.FadeTo(1f, fadeDuration);
+            if (ui != null) yield return ui.FadeTo(1f, fadeDuration);
 
-            // Музыка сцены не должна переезжать в следующую сцену.
+            // Это чтоб музыка прерывалась при переходу на другую сцену
             if (audio != null)
                 audio.StopMusic(fadeDuration);
 
@@ -152,7 +163,7 @@ namespace GameLimon.Core
                 yield break;
             }
 
-            if (!string.IsNullOrEmpty(sceneToUnload))
+            if (!string.IsNullOrEmpty(sceneToUnload)) 
                 yield return loader.Unload(sceneToUnload);
 
             yield return loader.LoadAdditive(next.SceneName);
@@ -176,6 +187,11 @@ namespace GameLimon.Core
                 if (saveOnSceneStart && root != null && root.Save != null)
                     root.Save.Save(state.CaptureSnapshot());
             }
+
+            if (next.Quest != null)
+                QuestDirector.Ensure().StartQuest(next.Quest);
+            else if (QuestDirector.Instance != null)
+                QuestDirector.Instance.StopQuest();
 
             if (ui != null)
                 yield return ui.FadeTo(0f, fadeDuration);

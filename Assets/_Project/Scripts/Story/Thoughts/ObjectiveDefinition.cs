@@ -12,10 +12,10 @@ namespace GameLimon.Story
         [SerializeField] private Sprite icon;
 
         [TextArea(2, 4)]
-        [Tooltip("Текст указания. Например: «Подойти заварить кофе».")]
+        [Tooltip("Текст указания")]
         [SerializeField] private string text;
 
-        [Tooltip("Необязательно. Флаг, который означает, что указание выполнено.")]
+        [Tooltip("Флаг (указание выполнено)")]
         [SerializeField] private string completedFlag;
 
         public Sprite Icon => icon;

@@ -1,3 +1,4 @@
+using GameLimon.Story;
 using UnityEngine;
 
 namespace GameLimon.Interaction
@@ -11,9 +12,18 @@ namespace GameLimon.Interaction
         [Tooltip("Если включено, объект сработает только один раз за загрузку сцены.")]
         [SerializeField] private bool oneShot;
 
+        [Header("Квест")]
+        [Tooltip("Разрешить взаимодействие только пока квест ждёт этот флаг. Пусто — объект доступен всегда.")]
+        [QuestStep]
+        [SerializeField] private string requiredStep;
+
         protected bool Used { get; private set; }
         public string InteractionPrompt => prompt;
-        public virtual bool CanInteract => !Used || !oneShot;
+        public string RequiredStep => requiredStep;
+
+        public virtual bool CanInteract =>
+            (string.IsNullOrEmpty(requiredStep) || QuestDirector.IsStepActive(requiredStep)) &&
+            (!Used || !oneShot);
 
         public void Interact(GameObject interactor)
         {

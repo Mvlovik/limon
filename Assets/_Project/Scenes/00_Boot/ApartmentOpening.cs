@@ -11,6 +11,8 @@ namespace GameLimon.Staging
         [SerializeField] private Animation windowAnimation;
         [SerializeField] private Camera openingCamera;
         [SerializeField] private Transform player;
+        [SerializeField] private Vector3 windowStandPosition = new Vector3(4.25f, 15.05f, -0.25f);
+        [SerializeField] private float windowStandYaw = 270f;
 
         public bool HasPlayed { get; private set; }
         public bool IsLookingAtWindow { get; private set; }
@@ -54,8 +56,8 @@ namespace GameLimon.Staging
                 {
                     yield return new WaitForSeconds(windowAnimation.clip.length);
                     // A cut back into the apartment, now facing the hallway.
-                    player.SetPositionAndRotation(new Vector3(-2.65f, 15.05f, 3.35f),
-                        Quaternion.Euler(0f, 180f, 0f));
+                    player.SetPositionAndRotation(windowStandPosition,
+                        Quaternion.Euler(0f, windowStandYaw, 0f));
                     if (motor != null) motor.ResetMomentum();
                     if (playerCamera != null)
                     {

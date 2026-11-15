@@ -5,25 +5,22 @@ using GameLimon.Core;
 using GameLimon.UI;
 using UnityEngine;
 
-namespace GameLimon.Story
-{
+namespace GameLimon.Story {
     /// <summary>
     /// Сервис сюжетных действий. Проигрывет списки StoryAction по очереди
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class StoryDirector : MonoBehaviour
-    {
+    public sealed class StoryDirector : MonoBehaviour {
         public static StoryDirector Instance { get; private set; }
 
         [Header("Мысли")]
-        [Tooltip("Скорость печати текста, символов в секунду.")]
+        [Tooltip("Скорость печати текста, символов в секунду")]
         [SerializeField] private float charsPerSecond = 32f;
 
-        [Tooltip("Длительность появления/исчезновения панели мыслей, сек.")]
+        [Tooltip("Длительность появления/исчезновения панели мыслей, сек")]
         [SerializeField] private float thoughtFade = 0.25f;
 
-        private struct Request
-        {
+        private struct Request {
             public IReadOnlyList<StoryAction> Actions;
             public ThoughtSequence Sequence;
             public ThoughtLine Line;
@@ -40,8 +37,7 @@ namespace GameLimon.Story
         public bool IsBusy => _worker != null;
 
         /// <summary>Найти или создать сервис (переживает смену сцен)</summary>
-        public static StoryDirector Ensure()
-        {
+        public static StoryDirector Ensure() {
             if (Instance != null) return Instance;
 
             var host = new GameObject("[StoryDirector]");
@@ -50,10 +46,8 @@ namespace GameLimon.Story
             return Instance;
         }
 
-        private void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
+        private void Awake() {
+            if (Instance != null && Instance != this) {
                 Destroy(gameObject);
                 return;
             }
@@ -65,13 +59,11 @@ namespace GameLimon.Story
             _voice = CreateSource("ThoughtVoice", false);
         }
 
-        private void OnDestroy()
-        {
+        private void OnDestroy() {
             if (Instance == this) Instance = null;
         }
 
-        private AudioSource CreateSource(string sourceName, bool loop)
-        {
+        private AudioSource CreateSource(string sourceName, bool loop) {
             var sourceObject = new GameObject(sourceName);
             sourceObject.transform.SetParent(transform, false);
 
@@ -84,8 +76,7 @@ namespace GameLimon.Story
         }
 
         /// <summary>Проиграть список действий</summary>
-        public void Run(IReadOnlyList<StoryAction> actions, Vector3 position = default)
-        {
+        public void Run(IReadOnlyList<StoryAction> actions, Vector3 position = default) {
             if (actions == null || actions.Count == 0) return;
 
             _queue.Enqueue(new Request { Actions = actions, Position = position });
@@ -96,9 +87,7 @@ namespace GameLimon.Story
         public IEnumerator RunBlocking(IReadOnlyList<StoryAction> actions, Vector3 position = default)
         {
             Run(actions, position);
-
-            while (IsBusy)
-                yield return null;
+            while (IsBusy) yield return null;
         }
 
         /// <summary>Проиграть последовательность мыслей</summary>
@@ -112,18 +101,14 @@ namespace GameLimon.Story
         }
 
         /// <summary>Проиграть одну мысль</summary>
-        public void PlayLine(ThoughtLine line)
-        {
-            if (line == null)
-                return;
-
+        public void PlayLine(ThoughtLine line) {
+            if (line == null) return;
             _queue.Enqueue(new Request { Line = line });
             EnsureWorker();
         }
 
         /// <summary>Оборвать всё: очередь, текущее действие, панель мыслей</summary>
-        public void Stop()
-        {
+        public void Stop() {
             StopAllCoroutines();
             _worker = null;
             _queue.Clear();
@@ -131,25 +116,20 @@ namespace GameLimon.Story
             if (_thoughtUI != null) _thoughtUI.Hide();
         }
 
-        private void EnsureWorker()
-        {
+        private void EnsureWorker() {
             if (_worker == null) _worker = StartCoroutine(WorkerRoutine());
         }
 
-        private IEnumerator WorkerRoutine()
-        {
-            while (_queue.Count > 0)
-            {
+        private IEnumerator WorkerRoutine() {
+            while (_queue.Count > 0) {
                 Request request = _queue.Dequeue();
 
-                if (request.Sequence != null)
-                {
+                if (request.Sequence != null) {
                     yield return PlaySequence(request.Sequence);
                     continue;
                 }
 
-                if (request.Line != null)
-                {
+                if (request.Line != null) {
                     yield return PlayLineRoutine(request.Line);
                     continue;
                 }
@@ -158,17 +138,14 @@ namespace GameLimon.Story
             _worker = null;
         }
 
-        private IEnumerator RunActions(IReadOnlyList<StoryAction> actions, Vector3 position)
-        {
+        private IEnumerator RunActions(IReadOnlyList<StoryAction> actions, Vector3 position) {
             GameRoot root = GameRoot.Instance;
 
-            for (int i = 0; i < actions.Count; i++)
-            {
+            for (int i = 0; i < actions.Count; i++) {
                 StoryAction action = actions[i];
                 if (action == null) continue;
 
-                switch (action.Type)
-                {
+                switch (action.Type) {
                     case StoryActionType.Wait:
                         if (action.Duration > 0f)
                             yield return new WaitForSeconds(action.Duration);
@@ -214,8 +191,7 @@ namespace GameLimon.Story
             }
         }
 
-        private IEnumerator PlaySequence(ThoughtSequence sequence)
-        {
+        private IEnumerator PlaySequence(ThoughtSequence sequence) {
             if (sequence == null) yield break;
 
             AudioDirector audio = GameRoot.Instance != null ? GameRoot.Instance.Audio : null;
@@ -234,8 +210,7 @@ namespace GameLimon.Story
                 audio.StopMusic();
         }
 
-        private IEnumerator PlayLineRoutine(ThoughtLine line)
-        {
+        private IEnumerator PlayLineRoutine(ThoughtLine line) {
             if (line == null) yield break;
 
             // Реплика без текста — только озвучка (например, первая реплика при пробуждении).
@@ -262,8 +237,7 @@ namespace GameLimon.Story
             yield return _thoughtUI.Play(line, charsPerSecond, thoughtFade);
         }
 
-        private void EnsureThoughtUI()
-        {
+        private void EnsureThoughtUI() {
             if (_thoughtUI != null)
                 return;
 
@@ -276,8 +250,7 @@ namespace GameLimon.Story
                 _thoughtUI = ThoughtUI.Create(ui.Canvas);
         }
 
-        private void PlaySfx(StoryAction action, Vector3 position)
-        {
+        private void PlaySfx(StoryAction action, Vector3 position) {
             if (action.Clip == null)
                 return;
 
