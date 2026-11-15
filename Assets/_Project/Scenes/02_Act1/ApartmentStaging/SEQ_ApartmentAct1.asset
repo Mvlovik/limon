@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e786231f98fa7b44287b7b45f951e43b, type: 3}
+  m_Name: SEQ_ApartmentAct1
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Story.StorySequence
+  scenes:
+  - {fileID: 11400000, guid: e368902bd70bdae46b1393cd16e2eedc, type: 2}
+  - {fileID: 11400000, guid: 5b9ca2ac0f46e56489159987b3969c8d, type: 2}
