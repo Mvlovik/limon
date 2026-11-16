@@ -2,12 +2,23 @@ using GameLimon.Core;
 using GameLimon.Interaction;
 using GameLimon.Player;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace GameLimon.Staging
 {
-    // Apartment-only presentation. Existing PlayerMotor and PlayerInteractor keep handling WASD and E.
-    public sealed class ApartmentFixedView : MonoBehaviour
+    /// <summary>Fixed third-person cameras, zone switching and optional placeholder animation.
+    /// Assign roomCamera, hallwayCamera and secondaryCameraZone in the Inspector.
+    /// Disable waitForApartmentOpening for other scenes, or call ActivateView from a UnityEvent.
+    /// Existing PlayerMotor and PlayerInteractor continue to handle movement and E.</summary>
+    [MovedFrom(true, "GameLimon.Staging", "Assembly-CSharp", "ApartmentFixedView")]
+    [AddComponentMenu("GameLimon/Staging/Fixed Third Person View")]
+    [DisallowMultipleComponent]
+    public sealed class FixedThirdPersonView : MonoBehaviour
     {
+        [Tooltip("Wait for the existing apartment opening. Disable in other scenes.")]
+        [SerializeField] private bool waitForApartmentOpening = true;
+        [Tooltip("Automatically activate when ready. Otherwise call ActivateView().")]
+        [SerializeField] private bool activateAutomatically = true;
         [SerializeField] private Camera roomCamera;
         [SerializeField] private Camera hallwayCamera;
         [SerializeField] private Transform hallwayDoorway;
@@ -28,6 +39,7 @@ namespace GameLimon.Staging
         private Camera _playerCamera;
         private AudioListener _playerListener;
         private bool _used, _oldPoseLocked, _oldCameraEnabled, _oldListenerEnabled;
+        private bool _activationRequested;
         private Vector3 _lastPosition;
         private float _movementYaw;
         private Transform _body, _head, _leftArm, _rightArm, _leftLeg, _rightLeg, _leftKnee, _rightKnee;
@@ -54,7 +66,7 @@ namespace GameLimon.Staging
 
         private void Update()
         {
-            if (_player == null || _opening == null)
+            if (_player == null)
             {
                 var root = GameRoot.Instance;
                 var playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -67,14 +79,25 @@ namespace GameLimon.Staging
                 _playerListener = _playerCamera != null ? _playerCamera.GetComponent<AudioListener>() : null;
             }
 
-            if (!_used && _opening != null && _opening.HasPlayed && !_opening.IsLookingAtWindow &&
+            if (!_used && (_activationRequested || (activateAutomatically &&
+                (!waitForApartmentOpening || (_opening != null && _opening.HasPlayed && !_opening.IsLookingAtWindow)))) &&
                 roomCamera != null && _playerCamera != null)
+                EnterFixedView();
+        }
+
+        public void ActivateView()
+        {
+            if (IsActive) return;
+            _used = false;
+            _activationRequested = true;
+            if (!IsActive && _player != null && roomCamera != null && _playerCamera != null)
                 EnterFixedView();
         }
 
         private void EnterFixedView()
         {
             _used = true;
+            _activationRequested = false;
             _oldPoseLocked = _look != null && _look.PoseLocked;
             _oldCameraEnabled = _playerCamera.enabled;
             _oldListenerEnabled = _playerListener != null && _playerListener.enabled;
@@ -151,10 +174,14 @@ namespace GameLimon.Staging
             if (secondaryCameraZone != null)
             {
                 // Test the player's position inside the room, not the capsule touching the doorway.
-                Bounds zone = secondaryCameraZone.bounds;
-                zone.Expand((IsInHallway ? 2f : -2f) * Mathf.Max(0f, doorwayHysteresis));
+                Vector3 point = secondaryCameraZone.transform.InverseTransformPoint(_player.position + Vector3.up * 0.9f);
+                Bounds zone = new Bounds(secondaryCameraZone.center, secondaryCameraZone.size);
+                var scale = secondaryCameraZone.transform.lossyScale;
+                float margin = Mathf.Max(0f, doorwayHysteresis) * (IsInHallway ? 2f : -2f);
+                zone.Expand(new Vector3(margin / Mathf.Max(0.001f, Mathf.Abs(scale.x)),
+                    margin / Mathf.Max(0.001f, Mathf.Abs(scale.y)), margin / Mathf.Max(0.001f, Mathf.Abs(scale.z))));
                 hallway = secondaryCameraZone.enabled && secondaryCameraZone.gameObject.activeInHierarchy &&
-                    zone.Contains(_player.position + Vector3.up * 0.9f);
+                    zone.Contains(point);
             }
             else if (hallwayDoorway != null)
             {
@@ -209,8 +236,10 @@ namespace GameLimon.Staging
             FocusedTargetName = selected != null ? selected.name : null;
         }
 
-        private void OnDisable()
+        public void DeactivateView()
         {
+            _activationRequested = false;
+            _used = true;
             if (!IsActive) return;
             IsActive = false;
             if (roomCamera != null) roomCamera.gameObject.SetActive(false);
@@ -227,6 +256,14 @@ namespace GameLimon.Staging
                 _look.ResyncPose();
                 _look.PoseLocked = _oldPoseLocked;
             }
+            IsInHallway = false;
+        }
+
+        private void OnDisable()
+        {
+            DeactivateView();
+            _used = false;
+            IsInHallway = false;
         }
     }
 }
