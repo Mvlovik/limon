@@ -31,6 +31,9 @@ namespace GameLimon.MainMenu
         [Tooltip("Первая сцена новой игры. Если пусто — берётся первая сцена каталога.")]
         [SerializeField] private string newGameSceneName = "A1_S01_Apartment";
 
+        [Tooltip("Boot-сцена, через которую запускается игра (в ней лежат GameRoot и игрок).")]
+        [SerializeField] private string bootSceneName = "Boot";
+
         [Tooltip("Режим разработчика: разрешить выбор любой сцены. Если выключено — только пройденные сцены.")]
         [SerializeField] private bool developerUnlockAllScenes = true;
 
@@ -165,7 +168,15 @@ namespace GameLimon.MainMenu
                 return;
             }
 
-            SceneManager.LoadScene(entry.sceneName, LoadSceneMode.Single);
+            if (string.IsNullOrEmpty(bootSceneName) || !Application.CanStreamedLevelBeLoaded(bootSceneName))
+            {
+                Debug.LogError($"[MainMenu] Boot-сцена '{bootSceneName}' отсутствует в Build Settings.");
+                return;
+            }
+
+            // Запускаем через Boot, иначе в игровой сцене не будет GameRoot, игрока и UI.
+            MenuLaunchRequest.Request(entry.sceneId);
+            SceneManager.LoadScene(bootSceneName, LoadSceneMode.Single);
         }
 
         private void ShowSceneSelection()

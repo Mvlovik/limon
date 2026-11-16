@@ -24,14 +24,14 @@
 
 ## Как настроить
 
-1. Откройте ассет `Assets/_Project/mainMenu/Config/MENU_SceneCatalog.asset`.
+1. Откройте ассет `Assets/_Project/Scenes/01_MainMenu/Config/MENU_SceneCatalog.asset`.
 2. В списке `Entries` задайте для каждой сцены:
    - `Act Title` — надпись сверху картинки (например «Акт 1»);
    - `Display Name` — название снизу карточки;
    - `Scene Id` — id из `SceneDefinition` (например `A1_S01`);
    - `Scene Name` — имя сцены в Build Settings;
    - `Preview` — спрайт из `SceneImages/`.
-3. На объекте `MainMenu` в сцене `Assets/_Project/mainMenu/MainMenu.unity`:
+3. На объекте `MainMenu` в сцене `Assets/_Project/Scenes/01_MainMenu/MainMenu.unity`:
    - `Developer Unlock All Scenes` — флаг режима разработчика. Включён — можно
      выбрать любую сцену; выключен — только пройденные.
    - `New Game Scene Name` — с какой сцены начинать новую игру.
