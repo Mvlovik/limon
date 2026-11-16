@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 622f0625c3592e04fad1b58a14966a80, type: 3}
+  m_Name: MENU_SceneCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.MainMenu.MenuSceneCatalog
+  entries:
+  - actTitle: "\u0410\u043A\u0442 1"
+    displayName: "\u041A\u0432\u0430\u0440\u0442\u0438\u0440\u0430"
+    sceneId: A1_S01
+    sceneName: A1_S01_Apartment
+    preview: {fileID: 21300000, guid: 5b5b5a55beda32744843e2c55f53e67d, type: 3}
+  - actTitle: "\u0410\u043A\u0442 1"
+    displayName: "\u041F\u0435\u0440\u0435\u0443\u043B\u043E\u043A"
+    sceneId: A1_S02
+    sceneName: A1_S02_Alley
+    preview: {fileID: 21300000, guid: f08f1c932d9737c4b8fee516bc895596, type: 3}
