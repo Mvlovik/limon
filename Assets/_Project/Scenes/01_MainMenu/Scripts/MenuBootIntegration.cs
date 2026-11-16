@@ -4,10 +4,7 @@ using UnityEngine.SceneManagement;
 
 namespace GameLimon.MainMenu
 {
-    /// <summary>
-    /// Если игру запустили из меню, после загрузки Boot сразу стартуем выбранную сцену,
-    /// не давая BootAutoStart запустить первую сцену по умолчанию.
-    /// </summary>
+
     internal static class MenuBootIntegration
     {
         private const string BootSceneName = "Boot";
@@ -34,7 +31,7 @@ namespace GameLimon.MainMenu
             GameFlow flow = root != null ? root.Flow : null;
             if (flow == null || flow.Sequence == null)
             {
-                Debug.LogError("[MainMenu] Boot загружен, но GameFlow не найден.");
+                Debug.LogError("[MainMenu] GameFlow не найден");
                 return;
             }
 

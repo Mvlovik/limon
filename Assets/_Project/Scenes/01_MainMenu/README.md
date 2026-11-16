@@ -1,40 +1,34 @@
 # mainMenu
 
-Главное меню игры. Всё, что относится к меню, лежит здесь и не трогает папку `Scripts`.
+Главное меню игры. Вся вёрстка меню лежит в сцене `MainMenu.unity` и префабе
+`Prefabs/SceneCard.prefab`; код только переключает панели и заполняет карточки.
 
 ## Что внутри
 
-- `Scripts/MainMenuController.cs` — строит меню кодом и обрабатывает кнопки:
-  - «Продолжить» — показывается только при наличии сохранения (`gamelimon_save_0.json`),
-    открывает экран выбора сцен.
-  - «Новая игра» — сбрасывает прогресс меню и сохранение, запускает первую сцену.
-  - «Настройки» — заглушка, пишет сообщение в консоль.
-  - «Выход» — выходит из игры (в редакторе останавливает Play Mode).
-- `Scripts/MenuSceneCatalog.cs` — ScriptableObject-каталог сцен.
-- `Scripts/MenuSceneEntry.cs` — описание сцены: название акта, название сцены,
-  id сцены, имя сцены в Build Settings и картинка-превью.
-- `Scripts/MenuProgressStore.cs` — прогресс: наличие сохранения, пройденные сцены
-  (PlayerPrefs + текущая сцена из сохранения).
-- `Scripts/MenuBootIntegration.cs` — если меню запущено отдельной сценой,
-  выбранная сцена стартует через Boot (чтобы работали GameRoot и GameFlow).
-  Сцена `MainMenu.unity` добавлена первой в Build Settings.
-- `Shaders/UIGrayscale.shader` — чёрно-белый материал для непройденных сцен.
-- `SceneImages/` — отдельная папка для картинок сцен. Сейчас там заглушки
-  `PREVIEW_A1_S01_Apartment.png` и `PREVIEW_A1_S02_Alley.png`.
+- `MainMenu.unity` — Canvas, панели, кнопки, `VerticalLayoutGroup`,
+  `GridLayoutGroup` и `ScrollRect`. Все ссылки и события кнопок назначены в сцене.
+- `Prefabs/SceneCard.prefab` — карточка сцены: превью, акт, название, статус.
+- `Scripts/MainMenuController.cs` — переключение панелей и запуск сцен.
+- `Scripts/SceneCardView.cs` — заполнение одной карточки.
+- `Scripts/MenuSceneCatalog.cs` / `MenuSceneEntry.cs` — каталог сцен.
+- `Scripts/MenuProgressStore.cs` — наличие сохранения и пройденные сцены.
+- `Scripts/MenuBootIntegration.cs` / `MenuLaunchRequest.cs` — запуск игры через Boot.
+- `Shaders/UIGrayscale.shader` и `M_LockedPreview.mat` — чёрно-белые непройденные сцены.
+- `SceneImages/` — картинки-превью сцен.
+- `Background/MENU_Background.unity` — пример 3D-сцены фона (её можно заменить своей).
+- `Background/Materials/` — материалы фоновой сцены.
 
-## Как настроить
+## Настройка
 
-1. Откройте ассет `Assets/_Project/Scenes/01_MainMenu/Config/MENU_SceneCatalog.asset`.
-2. В списке `Entries` задайте для каждой сцены:
-   - `Act Title` — надпись сверху картинки (например «Акт 1»);
-   - `Display Name` — название снизу карточки;
-   - `Scene Id` — id из `SceneDefinition` (например `A1_S01`);
-   - `Scene Name` — имя сцены в Build Settings;
-   - `Preview` — спрайт из `SceneImages/`.
-3. На объекте `MainMenu` в сцене `Assets/_Project/Scenes/01_MainMenu/MainMenu.unity`:
-   - `Developer Unlock All Scenes` — флаг режима разработчика. Включён — можно
-     выбрать любую сцену; выключен — только пройденные.
-   - `New Game Scene Name` — с какой сцены начинать новую игру.
+1. Список сцен: `Config/MENU_SceneCatalog.asset`.
+   Для каждой сцены задаются акт, название, `sceneId`, `sceneName` и превью.
+2. На объекте `MainMenu` в сцене `MainMenu.unity`:
+   - `Developer Unlock All Scenes` — разрешить выбор любой сцены;
+   - `New Game Scene Name` — стартовая сцена новой игры;
+   - `Background Scene Name` — имя вашей 3D-сцены фона (по умолчанию
+     `MENU_Background`). Сцена должна быть в Build Settings.
+3. Картинки сцен: `Texture Type = Sprite (2D and UI)`, затем спрайт назначается
+   в поле `Preview` каталога сцен.
 
-Непройденные сцены всегда показываются чёрно-белыми (материал
-`M_LockedPreview`), независимо от флага разработчика.
+Непройденные сцены всегда показываются чёрно-белыми, независимо от флага
+разработчика.

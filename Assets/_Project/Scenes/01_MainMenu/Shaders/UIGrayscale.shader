@@ -84,7 +84,7 @@ Shader "GameLimon/UI/Grayscale"
             fixed4 frag(v2f i) : SV_Target
             {
                 fixed4 color = tex2D(_MainTex, i.texcoord) * i.color;
-                float luminance = dot(color.rgb, float3(0.299, 0.587, 0.114));
+                float luminance = dot(color.rgb, float3(0.299, 0.187, 0.114));
                 color.rgb = lerp(color.rgb, luminance.xxx, _Grayscale) * _Brightness;
                 return color;
             }
