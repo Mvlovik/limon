@@ -22,6 +22,12 @@ namespace GameLimon.Staging
         [SerializeField] private GameObject editorServicesPrefab;
         [SerializeField] private float sitDuration = 0.65f;
 
+        [Tooltip("После конца разговора затемнить экран и перейти к следующей сцене")]
+        [SerializeField] private bool completeSceneWhenFinished = true;
+
+        [Tooltip("Пауза перед затемнением после конца разговора, сек")]
+        [SerializeField] private float endHoldDuration = 0.6f;
+
         private bool started;
         private GameObject player;
         private PlayerMotor motor;
@@ -138,6 +144,27 @@ namespace GameLimon.Staging
             conversation.wrapMode = WrapMode.ClampForever;
             conversation.Play();
             if (conversationAudio != null) conversationAudio.Play();
+
+            if (completeSceneWhenFinished)
+                yield return FinishAndAdvance();
+        }
+
+        private IEnumerator FinishAndAdvance()
+        {
+            // WrapMode.ClampForever держит isPlaying=true, поэтому ждём длину клипа.
+            float clipLength = conversation.clip != null ? conversation.clip.length : 0f;
+            if (clipLength > 0f)
+                yield return new WaitForSeconds(clipLength);
+
+            if (endHoldDuration > 0f)
+                yield return new WaitForSeconds(endHoldDuration);
+
+            GameRoot root = GameRoot.Instance;
+            if (root != null && root.UI != null)
+                yield return root.UI.FadeTo(1f, 1f);
+
+            if (root != null && root.Flow != null)
+                root.Flow.CompleteCurrentScene();
         }
 
         private void OnDestroy()

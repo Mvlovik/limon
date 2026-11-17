@@ -213,13 +213,13 @@ namespace GameLimon.MainMenu
                 return;
             }
 
-            if (string.IsNullOrEmpty(entry.sceneName) || !Application.CanStreamedLevelBeLoaded(entry.sceneName))
+            if (string.IsNullOrEmpty(entry.sceneName) || !SceneAvailability.CanLoad(entry.sceneName))
             {
                 Debug.LogError($"[MainMenu] Сцена '{entry.sceneName}' отсутствует в Build Settings.");
                 return;
             }
 
-            if (string.IsNullOrEmpty(bootSceneName) || !Application.CanStreamedLevelBeLoaded(bootSceneName))
+            if (string.IsNullOrEmpty(bootSceneName) || !SceneAvailability.CanLoad(bootSceneName))
             {
                 Debug.LogError($"[MainMenu] Boot-сцена '{bootSceneName}' отсутствует в Build Settings.");
                 return;
@@ -238,7 +238,7 @@ namespace GameLimon.MainMenu
             Scene background = SceneManager.GetSceneByName(backgroundSceneName);
             if (!background.isLoaded)
             {
-                if (!Application.CanStreamedLevelBeLoaded(backgroundSceneName))
+                if (!SceneAvailability.CanLoad(backgroundSceneName))
                 {
                     Debug.LogWarning($"[MainMenu] Фоновая сцена '{backgroundSceneName}' отсутствует в Build Settings.");
                     yield break;

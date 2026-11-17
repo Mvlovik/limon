@@ -137,7 +137,7 @@ namespace GameLimon.Core
 
 
             // Не выгружаем текущую сцену, если следующей нет в Build Settings.
-            if (!Application.CanStreamedLevelBeLoaded(next.SceneName))
+            if (!SceneAvailability.CanLoad(next.SceneName))
             {
                 Debug.LogError($"[GameFlow] Сцена \"{next.SceneName}\" ({next.Id}) отсутствует в Build Settings - перехода нет(");
                 _isTransitioning = false;
