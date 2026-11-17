@@ -1,0 +1,180 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &370439977589501302
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8597763994832964386}
+  m_Layer: 0
+  m_Name: Heading
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8597763994832964386
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 370439977589501302}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7759858513820122240}
+  m_Father: {fileID: 1945770523408070684}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5054462286467824566
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8929855624117673027}
+  m_Layer: 0
+  m_Name: kawasaki-spectre_Traffic
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8929855624117673027
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5054462286467824566}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1945770523408070684}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6751121099741516948
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1945770523408070684}
+  m_Layer: 0
+  m_Name: Model
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1945770523408070684
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6751121099741516948}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.00032263307, y: 0.18500456, z: -0.022903487}
+  m_LocalScale: {x: 0.21344182, y: 0.21344182, z: 0.21344182}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8597763994832964386}
+  m_Father: {fileID: 8929855624117673027}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &7798606491706235755
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8597763994832964386}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 25.39385
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 25.393848
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 25.39385
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3.3275824
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.8065602
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.051072504
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.70500267
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.29013845
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.64484084
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.05450933
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 0a0a54cc9d5c0d44cac926ed46f714a9, type: 2}
+    - target: {fileID: -7511558181221131132, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: f7c184f53aeee7249b31515009155950, type: 2}
+    - target: {fileID: 919132149155446097, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+      propertyPath: m_Name
+      value: kawasaki_spectre
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+--- !u!4 &7759858513820122240 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b75d1db4fe49f854697a070458e97ae1, type: 3}
+  m_PrefabInstance: {fileID: 7798606491706235755}
+  m_PrefabAsset: {fileID: 0}
