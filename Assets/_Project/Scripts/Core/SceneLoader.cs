@@ -14,6 +14,8 @@ namespace GameLimon.Core
     {
         private readonly HashSet<string> _loadedScenes = new HashSet<string>();
 
+        private Scene _previousActiveScene;
+
         public event Action<string> SceneLoaded;
         public event Action<string> SceneUnloaded;
 
@@ -57,6 +59,7 @@ namespace GameLimon.Core
         {
             IsBusy = true;
 
+            Scene activeBeforeLoad = SceneManager.GetActiveScene();
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             if (operation == null)
             {
@@ -66,6 +69,19 @@ namespace GameLimon.Core
             }
 
             yield return operation;
+
+            Scene loaded = SceneManager.GetSceneByName(sceneName);
+            if (loaded.IsValid() && loaded.isLoaded)
+            {
+                // Аддитивная сцена не применяет свои RenderSettings (skybox, fog, ambient),
+                // пока не станет активной. Запоминаем Boot/меню, чтобы вернуть их при выгрузке.
+                _previousActiveScene = activeBeforeLoad;
+                SceneManager.SetActiveScene(loaded);
+            }
+            else
+            {
+                Debug.LogWarning($"[SceneLoader] Сцена \"{sceneName}\" загрузилась, но не найдена по имени.");
+            }
 
             _loadedScenes.Add(sceneName);
             IsBusy = false;
@@ -79,6 +95,7 @@ namespace GameLimon.Core
         {
             IsBusy = true;
 
+            bool wasActive = SceneManager.GetActiveScene().name == sceneName;
             AsyncOperation operation = SceneManager.UnloadSceneAsync(sceneName);
             if (operation == null)
             {
@@ -92,9 +109,31 @@ namespace GameLimon.Core
             _loadedScenes.Remove(sceneName);
             IsBusy = false;
 
+            if (wasActive)
+                ActivateFallbackScene();
+
             Debug.Log($"[SceneLoader] Выгружена: \"{sceneName}\"");
             SceneUnloaded?.Invoke(sceneName);
             onUnloaded?.Invoke();
+        }
+
+        private void ActivateFallbackScene()
+        {
+            if (_previousActiveScene.IsValid() && _previousActiveScene.isLoaded)
+            {
+                SceneManager.SetActiveScene(_previousActiveScene);
+                return;
+            }
+
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene candidate = SceneManager.GetSceneAt(i);
+                if (candidate.isLoaded)
+                {
+                    SceneManager.SetActiveScene(candidate);
+                    return;
+                }
+            }
         }
     }
 }

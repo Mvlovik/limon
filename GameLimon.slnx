@@ -14,9 +14,10 @@
   <Project Path="com.alexeyperov.unity-open-mcp-verify.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.InputSimulation.Tmp.Editor.Tests.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.TestRunner.Editor.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.UI.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.InputSimulation.Tmp.Editor.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="com.alexeyperov.unity-open-mcp-bridge.Splines.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.Cinemachine.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.Terrain.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.Texture.Editor.csproj" />

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace GameLimon.MainMenu
 {
     /// <summary>
-    /// Настраиваемый список сцен, которые показываются в меню «Продолжить».
+    /// Настраиваемый список сцен, которые показываются в меню "Продолжить".
     /// </summary>
     [CreateAssetMenu(fileName = "MENU_SceneCatalog", menuName = "GameLimon/Main Menu/Scene Catalog")]
     public sealed class MenuSceneCatalog : ScriptableObject

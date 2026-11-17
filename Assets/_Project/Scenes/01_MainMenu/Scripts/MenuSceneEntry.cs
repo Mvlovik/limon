@@ -9,19 +9,19 @@ namespace GameLimon.MainMenu
     [Serializable]
     public sealed class MenuSceneEntry
     {
-        [Tooltip("Название акта, которое пишется поверх картинки, например «Акт 1».")]
+        [Tooltip("Название акта, которое пишется поверх картинки, например 'Акт 1'")]
         public string actTitle = "Акт 1";
 
         [Tooltip("Отображаемое название сцены под картинкой.")]
         public string displayName = "Новая сцена";
 
-        [Tooltip("Id сцены из GameLimon/Story/SceneDefinition, например A1_S01.")]
+        [Tooltip("Id сцены из GameLimon/Story/SceneDefinition")]
         public string sceneId;
 
-        [Tooltip("Имя сцены как в Build Settings, например A1_S01_Apartment.")]
+        [Tooltip("Имя сцены как в Build Settings")]
         public string sceneName;
 
-        [Tooltip("Картинка-превью сцены. Пока можно оставить заглушку.")]
+        [Tooltip("Картинка-превью сцен")]
         public Sprite preview;
     }
 }
