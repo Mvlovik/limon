@@ -23,3 +23,8 @@ MonoBehaviour:
     sceneId: A1_S02
     sceneName: A1_S02_Alley
     preview: {fileID: 21300000, guid: f08f1c932d9737c4b8fee516bc895596, type: 3}
+  - actTitle: "\u0410\u043A\u0442 1"
+    displayName: "\u041F\u043E\u043B\u0438\u0446\u0435\u0439\u0441\u043A\u0438\u0439 \u0443\u0447\u0430\u0441\u0442\u043E\u043A"
+    sceneId: A1_S03
+    sceneName: PoliceStationConversation
+    preview: {fileID: 0}
