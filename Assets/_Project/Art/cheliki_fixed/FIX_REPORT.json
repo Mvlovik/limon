@@ -1,0 +1,52 @@
+{
+  "reference": "RUSTEM",
+  "reference_height": 174.29806925356388,
+  "models": {
+    "GG_DEF.fbx": {
+      "action": "uniformly scaled skin mesh, bone translations and bind/pose matrices",
+      "old_height": 455.63902747631073,
+      "scale_factor": 0.38253542550769726,
+      "new_height": 174.29806925356388,
+      "matrix_arrays_updated": 134,
+      "bones": 39
+    },
+    "GG_POLICE.fbx": {
+      "action": "uniformly scaled skin mesh, bone translations and bind/pose matrices",
+      "old_height": 455.63902747631073,
+      "scale_factor": 0.38253542550769726,
+      "new_height": 174.29806925356388,
+      "matrix_arrays_updated": 134,
+      "bones": 39
+    },
+    "RITA.fbx": {
+      "action": "uniformly scaled skin mesh, bone translations and bind/pose matrices",
+      "old_height": 431.4097194671631,
+      "scale_factor": 0.4040198015678473,
+      "new_height": 174.29806925356388,
+      "matrix_arrays_updated": 134,
+      "bones": 39
+    },
+    "DJO_KURTKA.fbx": {
+      "action": "recentered at foot pivot, scene translation cleared, normalized to RUSTEM height",
+      "old_height_after_model_scale": 171.82661769911647,
+      "vertex_scale_factor": 1.014383403383841,
+      "new_height": 174.29806925356388,
+      "skeleton": "not present in source"
+    },
+    "GG_KURTKA_SH.fbx": {
+      "action": "oversized transform baked into geometry, recentered at foot pivot, normalized to RUSTEM height",
+      "old_visible_height_after_model_scale": 1006.1064534178149,
+      "old_model_scale": 1.9868260622024536,
+      "vertex_scale_factor": 0.34419811681770196,
+      "new_height": 174.29806925356388,
+      "unused_control_points_removed": 8,
+      "skeleton": "not present in source"
+    },
+    "RUSTEM.fbx": {
+      "action": "reference; unchanged",
+      "height": 174.29806925356388,
+      "skeleton": "not present in source"
+    }
+  },
+  "rig_note": "DJO_KURTKA, RUSTEM and GG_KURTKA_SH have no skeleton/skin deformers in the supplied FBX files. GG_DEF, GG_POLICE and RITA contain the same 39-bone Mixamo hierarchy."
+}
