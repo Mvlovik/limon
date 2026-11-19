@@ -109,8 +109,25 @@ namespace GameLimon.EditorTools
         {
             foreach (GameObject root in scene.GetRootGameObjects())
             {
-                if (root.name == "Joe")
-                    return root;
+                // Joe живёт в группе _Characters, поэтому ищем и среди потомков.
+                Transform found = FindDeep(root.transform, "Joe");
+                if (found != null)
+                    return found.gameObject;
+            }
+
+            return null;
+        }
+
+        private static Transform FindDeep(Transform parent, string name)
+        {
+            if (parent.name == name)
+                return parent;
+
+            foreach (Transform child in parent)
+            {
+                Transform found = FindDeep(child, name);
+                if (found != null)
+                    return found;
             }
 
             return null;

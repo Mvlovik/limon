@@ -23,6 +23,27 @@ namespace GameLimon.EditorTools
         [MenuItem(MenuPath)]
         public static void RunFromMenu() => Setup(interactive: true);
 
+        [MenuItem("Tools/GameLimon/Play Mode Start Scene → Boot")]
+        public static void UseBootAsPlayModeStartScene()
+        {
+            SceneAsset boot = AssetDatabase.LoadAssetAtPath<SceneAsset>(BootScenePath);
+            if (boot == null)
+            {
+                Debug.LogError($"[BootSetup] Не найдена сцена Boot: {BootScenePath}");
+                return;
+            }
+
+            EditorSceneManager.playModeStartScene = boot;
+            Debug.Log("[BootSetup] Play Mode Start Scene = Boot.unity. Теперь Play из любой сцены запускает Boot.");
+        }
+
+        [MenuItem("Tools/GameLimon/Play Mode Start Scene → Clear")]
+        public static void ClearPlayModeStartScene()
+        {
+            EditorSceneManager.playModeStartScene = null;
+            Debug.Log("[BootSetup] Play Mode Start Scene очищена.");
+        }
+
         /// <summary>Точка входа для Unity batch mode.</summary>
         public static void RunFromCommandLine() => Setup(interactive: false);
 
