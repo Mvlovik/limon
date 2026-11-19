@@ -14,7 +14,8 @@ namespace GameLimon.Story
         CompleteScene,
         RestartScene,
         Log,
-        HideObjective
+        HideObjective,
+        PlayCutscene
     }
 
     /// <summary>
@@ -51,6 +52,9 @@ namespace GameLimon.Story
         [Tooltip("Текст для Log (отладка)")]
         [SerializeField] private string message;
 
+        [Tooltip("Сцена-катсцена для PlayCutscene")]
+        [SerializeField] private SceneCutscene cutscene;
+
         public StoryActionType Type => type;
         public string Flag => flag;
         public ThoughtSequence Thought => thought;
@@ -60,5 +64,6 @@ namespace GameLimon.Story
         public float Duration => duration;
         public float FadeAlpha => fadeAlpha;
         public string Message => message;
+        public SceneCutscene Cutscene => cutscene;
     }
 }

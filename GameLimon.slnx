@@ -24,6 +24,7 @@
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.Texture.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.InputSystem.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.Animation.Editor.csproj" />
+  <Project Path="com.alexeyperov.unity-open-mcp-bridge.Timeline.Editor.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.InputSimulation.InputSystem.Editor.Tests.csproj" />
   <Project Path="com.alexeyperov.unity-open-mcp-bridge.Dependencies.Editor.csproj" />
 </Solution>

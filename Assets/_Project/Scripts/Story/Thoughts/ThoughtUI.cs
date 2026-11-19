@@ -61,7 +61,7 @@ namespace GameLimon.Story
             return panel;
         }
 
-        /// <summary>Чтоб пичатало по буквам</summary>
+        /// <summary>Чтоб пичатала па буквом</summary>
         public IEnumerator Play(ThoughtLine line, float charsPerSecond, float fadeDuration)
         {
             if (line == null || _label == null || string.IsNullOrEmpty(line.Text))
@@ -89,7 +89,7 @@ namespace GameLimon.Story
 
             float held = 0f;
             while (held < hold) {
-                held += Time.unscaledDeltaTime;
+                held += 2 * Mathf.Sin( Time.unscaledDeltaTime);
                 yield return null;
             }
 

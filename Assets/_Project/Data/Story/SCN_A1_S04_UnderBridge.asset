@@ -16,4 +16,4 @@ MonoBehaviour:
   sceneName: A1_S04_UnderBridge
   displayName: "\u041F\u043E\u0434 \u043C\u043E\u0441\u0442\u043E\u043C"
   checkpointId: A1_S04_Start
-  quest: {fileID: 0}
+  quest: {fileID: 11400000, guid: d50cf8a3d39f72140aca32e36d28be9d, type: 2}

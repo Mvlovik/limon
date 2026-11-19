@@ -22,6 +22,10 @@ namespace GameLimon.Staging
         [SerializeField] private GameObject editorServicesPrefab;
         [SerializeField] private float sitDuration = 0.65f;
 
+        [Header("Cutscene")]
+        [Tooltip("Общий сценарий катсцены. Если назначен, используется вместо встроенной логики.")]
+        [SerializeField] private SceneCutscene cutscene;
+
         [Tooltip("После конца разговора затемнить экран и перейти к следующей сцене")]
         [SerializeField] private bool completeSceneWhenFinished = true;
 
@@ -86,6 +90,14 @@ namespace GameLimon.Staging
 
         protected override void OnInteract(GameObject interactorObject)
         {
+            if (cutscene != null)
+            {
+                started = true;
+                player = interactorObject;
+                cutscene.Play();
+                return;
+            }
+
             if (conversation == null || conversation.clip == null || seatedCamera == null) return;
             started = true;
             player = interactorObject;

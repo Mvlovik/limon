@@ -100,6 +100,15 @@ namespace GameLimon.Story {
             EnsureWorker();
         }
 
+        /// <summary>
+        /// Проиграть последовательность мыслей как часть уже выполняемого
+        /// сценария (например, из катсцены), не ставя её в общую очередь.
+        /// </summary>
+        public IEnumerator PlayThoughtSequence(ThoughtSequence sequence)
+        {
+            yield return PlaySequence(sequence);
+        }
+
         /// <summary>Проиграть одну мысль</summary>
         public void PlayLine(ThoughtLine line) {
             if (line == null) return;
@@ -186,6 +195,15 @@ namespace GameLimon.Story {
 
                     case StoryActionType.HideObjective:
                         ObjectiveUI.Instance?.Hide();
+                        break;
+
+                    case StoryActionType.PlayCutscene:
+                        if (action.Cutscene != null)
+                        {
+                            action.Cutscene.Play();
+                            while (action.Cutscene != null && action.Cutscene.IsPlaying)
+                                yield return null;
+                        }
                         break;
                 }
             }
