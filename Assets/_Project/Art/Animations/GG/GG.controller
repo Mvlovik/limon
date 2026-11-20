@@ -36,13 +36,13 @@ AnimatorStateMachine:
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: 6161765544857761992}
-    m_Position: {x: 200, y: 0, z: 0}
+    m_Position: {x: 260, y: -10, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 7861852395363594597}
-    m_Position: {x: 235, y: 65, z: 0}
+    m_Position: {x: 270, y: 130, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 4758763782574818575}
-    m_Position: {x: 270, y: 130, z: 0}
+    m_Position: {x: 490, y: -10, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []
@@ -133,7 +133,7 @@ AnimatorController:
     m_Behaviours: []
     m_BlendingMode: 0
     m_SyncedLayerIndex: -1
-    m_DefaultWeight: 0
+    m_DefaultWeight: 1
     m_IKPass: 0
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
@@ -188,7 +188,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 6713110022505218580, guid: 7053826b3503c6d40a443fe172146933, type: 3}
+  m_Motion: {fileID: 7400000, guid: c38aa3ca55caecd4c972b1de942504bf, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -216,7 +216,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 1511234772771085417, guid: 2e50cf0529cab3e429d7ada41765c2ec, type: 3}
+  m_Motion: {fileID: 7400000, guid: c2e0df1f480c22a43b974fd235c438a7, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -255,7 +255,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Walk
-  m_Speed: 0.8
+  m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 7494908814972819606}
@@ -269,7 +269,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 8013515974514051655, guid: e19b8e7a108666f478d4ec2dceab25f7, type: 3}
+  m_Motion: {fileID: 7400000, guid: 9e96024d9585ddc4798d9d44acc5e9e3, type: 2}
   m_Tag: 
   m_SpeedParameter: PlaybackSpeed
   m_MirrorParameter: 
