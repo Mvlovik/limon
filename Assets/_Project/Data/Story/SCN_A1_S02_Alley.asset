@@ -16,3 +16,4 @@ MonoBehaviour:
   sceneName: A1_S02_Alley
   displayName: "\u041F\u0435\u0440\u0435\u0443\u043B\u043E\u043A"
   checkpointId: A1_S02_Start
+  quest: {fileID: 0}

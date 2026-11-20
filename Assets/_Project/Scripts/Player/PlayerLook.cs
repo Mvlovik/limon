@@ -13,7 +13,7 @@ namespace GameLimon.Player
 
         [Header("Камера")]
         [Tooltip("Вертикальный FOV игровой камеры. Меняется здесь, а не в компоненте Camera.")]
-        [SerializeField, Range(40f, 120f)] private float fieldOfView = 90f;
+        [SerializeField, Range(0f, 360f)] private float fieldOfView = 90f;
 
         [Header("Сенса")]
         [Tooltip("Множитель для мыши и стика.")]
