@@ -4,18 +4,19 @@ using GameLimon.Core;
 using GameLimon.Player;
 using GameLimon.UI;
 using UnityEngine;
+using UnityEngine.Playables;
 
 namespace GameLimon.Story
 {
     /// <summary>
     /// Reusable in-scene cutscene presentation.
     /// Handles the same flow as the police-station conversation:
-    /// player lock, camera handoff, optional legacy animation/audio, optional
+    /// player lock, camera handoff, optional Timeline/legacy animation/audio, optional
     /// thoughts, UI hiding, fade and scene completion.
     /// Scenes only configure the references; no per-scene cutscene code.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class SceneCutscene : MonoBehaviour
+    public class SceneCutscene : MonoBehaviour
     {
         [Header("Camera")]
         [SerializeField] private Camera cutsceneCamera;
@@ -25,6 +26,13 @@ namespace GameLimon.Story
         [Header("Scene objects")]
         [Tooltip("Objects enabled only while the cutscene is playing (body, characters, props).")]
         [SerializeField] private GameObject[] enableDuringCutscene;
+
+        [Header("Optional Timeline")]
+        [Tooltip("Optional Timeline to play instead of/in addition to legacy animation.")]
+        [SerializeField] protected PlayableDirector timeline;
+
+        [Tooltip("Wait until the Timeline finishes before continuing to the thoughts/hold.")]
+        [SerializeField] protected bool waitForTimeline = true;
 
         [Header("Optional legacy animation")]
         [Tooltip("Optional legacy Animation to play. Leave empty for camera-only cutscenes.")]
@@ -136,8 +144,24 @@ namespace GameLimon.Story
             IsPlaying = false;
         }
 
-        private IEnumerator PlayContent()
+        /// <summary>
+        /// Content beat between camera handoff and scene completion.
+        /// Scenes with a custom flow override this to drive Timeline, choices, QTE, etc.
+        /// </summary>
+        protected virtual IEnumerator PlayContent()
         {
+            if (timeline != null && timeline.playableAsset != null)
+            {
+                timeline.time = 0;
+                timeline.Play();
+
+                if (waitForTimeline)
+                {
+                    while (timeline != null && timeline.state == PlayState.Playing)
+                        yield return null;
+                }
+            }
+
             if (sequence != null)
                 yield return StoryDirector.Ensure().PlayThoughtSequence(sequence);
 
@@ -206,7 +230,7 @@ namespace GameLimon.Story
             _captured = true;
         }
 
-        private void PrepareCutscene()
+        protected virtual void PrepareCutscene()
         {
             if (_motor != null)
             {
@@ -243,7 +267,7 @@ namespace GameLimon.Story
             }
         }
 
-        private void RestorePlayerState()
+        protected virtual void RestorePlayerState()
         {
             if (!_captured)
                 return;
