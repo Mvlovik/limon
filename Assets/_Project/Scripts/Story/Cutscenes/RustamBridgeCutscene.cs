@@ -91,6 +91,7 @@ namespace GameLimon.Story
                 // FirstPersonBody normally hides the head for the FPS view. The
                 // cutscene needs the real head for the final close-up.
                 RestoreHeadScale(_player.transform);
+                StopLocomotion(_player.transform);
 
                 if (playerIntroMark != null)
                     _player.transform.SetPositionAndRotation(playerIntroMark.position, playerIntroMark.rotation);
@@ -102,6 +103,8 @@ namespace GameLimon.Story
                 _joeCompanion = _joe.GetComponent<CompanionActor>();
                 if (_joeCompanion != null)
                     _joeCompanion.enabled = false;
+
+                StopLocomotion(_joe.transform);
 
                 if (joeIntroMark != null)
                     _joe.transform.SetPositionAndRotation(joeIntroMark.position, joeIntroMark.rotation);
@@ -476,6 +479,14 @@ namespace GameLimon.Story
             var clip = AudioClip.Create("SFX_CutsceneRunning_Placeholder", count, 1, rate, false);
             clip.SetData(samples, 0);
             return clip;
+        }
+
+        private static void StopLocomotion(Transform root)
+        {
+            var animator = root != null ? root.GetComponentInChildren<Animator>(true) : null;
+            if (animator == null) return;
+            animator.SetFloat("Speed", 0f);
+            animator.SetFloat("PlaybackSpeed", 1f);
         }
 
         private static void RestoreHeadScale(Transform player)
