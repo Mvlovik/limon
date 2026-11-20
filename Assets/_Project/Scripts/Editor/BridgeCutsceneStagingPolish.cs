@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine.Timeline;
 using Unity.Cinemachine;
 using GameLimon.Story;
 
