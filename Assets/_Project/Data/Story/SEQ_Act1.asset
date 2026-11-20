@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: SEQ_Act1
   m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Story.StorySequence
   scenes:
-  - {fileID: 11400000, guid: 61bd965419c99b7408141e40200dacba, type: 2}
+  - {fileID: 11400000, guid: 68581c5f5db28e04ab0532a4d2764212, type: 2}
   - {fileID: 11400000, guid: 5b9ca2ac0f46e56489159987b3969c8d, type: 2}
   - {fileID: 11400000, guid: c74f739765fef434faab3dc1d5d90921, type: 2}

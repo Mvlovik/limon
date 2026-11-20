@@ -1,0 +1,7 @@
+newmtl Material_2
+Kd 1 1 1
+map_Kd StreetFencePanels.png
+
+newmtl Material_1
+Kd 1 1 1
+map_Kd StreetFenceMesh.png
