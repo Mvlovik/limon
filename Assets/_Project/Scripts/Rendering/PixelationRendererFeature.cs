@@ -123,7 +123,13 @@ namespace GameLimon.Rendering
                 _propertyBlock.SetFloat(PixelSizeId, Mathf.Max(1f, _pixelSize));
 
                 var parameters = new RenderGraphUtils.BlitMaterialParameters(
-                    copy, destination, _material, ShaderPassIndex, _propertyBlock);
+                    copy, destination, _material, ShaderPassIndex, _propertyBlock)
+                {
+                    // Use the procedural full-screen triangle that the Blit.hlsl
+                    // "Vert" vertex shader expects. The default Mesh geometry needs
+                    // Blitter's internal quad mesh, which is not always initialized.
+                    geometry = RenderGraphUtils.FullScreenGeometryType.ProceduralTriangle
+                };
 
                 renderGraph.AddBlitPass(parameters, passName: "Pixelation");
             }
