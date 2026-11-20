@@ -15,16 +15,6 @@ namespace GameLimon.Player
         [Tooltip("Отношение скорости спринта к скорости шага. Нужно для нормализации Speed.")]
         [SerializeField] private float sprintToWalkRatio = 1.625f;
 
-        [Header("Спринт")]
-        [Tooltip("Выпрямлять корпус (грудь) во время спринта, чтобы он не наклонялся вперёд.")]
-        [SerializeField] private bool straightenTorsoInSprint = true;
-
-        [Tooltip("Нормализованная скорость (0 — шаг, 1 — спринт), с которой начинает выпрямляться корпус.")]
-        [SerializeField, Range(0f, 1f)] private float torsoUprightStartSpeed = 0.7f;
-
-        [Tooltip("Насколько полно выпрямлять корпус в спринте: 0 — как в клипе, 1 — строго вертикально.")]
-        [SerializeField, Range(0f, 1f)] private float torsoUprightStrength = 1f;
-
         private Transform _head;
         private Transform _spine;
         private Transform _spine1;
@@ -35,7 +25,6 @@ namespace GameLimon.Player
         private Transform _leftLeg;
         private Transform _rightLeg;
         private float _airTime;
-        private float _speedBlend;
 
         private void Awake()
         {
@@ -64,8 +53,6 @@ namespace GameLimon.Player
             float ratio = Mathf.Max(1f, sprintToWalkRatio);
             float blend = Mathf.Clamp01(motor.Speed01 / ratio);
             bool crouching = motor.CrouchAmount > 0.5f;
-
-            _speedBlend = blend;
 
             animator.SetFloat("Speed", blend, 0.08f, Time.deltaTime);
             animator.SetFloat("PlaybackSpeed", Mathf.Lerp(0.9f, 1.0f, blend));
@@ -101,17 +88,6 @@ namespace GameLimon.Player
                 RotateWorld(_neck, -breath * 0.45f, axis);
             }
 
-            // Клип бега сильно наклоняет корпус вперёд. В спринте выпрямляем
-            // его до вертикали, иначе из первого лица видно «сгорбленную» спину.
-            if (straightenTorsoInSprint)
-            {
-                float sprintWeight = Mathf.InverseLerp(torsoUprightStartSpeed, 1f, _speedBlend)
-                    * torsoUprightStrength;
-
-                if (sprintWeight > 0.001f)
-                    StraightenTorso(sprintWeight, axis);
-            }
-
             if (motor.IsGrounded || _airTime <= 0f)
                 return;
 
@@ -121,28 +97,6 @@ namespace GameLimon.Player
             RotateWorld(_rightUpLeg, -38f * tuck, axis);
             RotateWorld(_leftLeg, 55f * tuck, axis);
             RotateWorld(_rightLeg, 55f * tuck, axis);
-        }
-
-        /// <summary>
-        /// Ставит корпус вертикально: измеряет наклон линии «поясница → шея»
-        /// и компенсирует его поворотом нижнего отдела позвоночника.
-        /// </summary>
-        private void StraightenTorso(float weight, Vector3 axis)
-        {
-            if (_spine == null || _neck == null)
-                return;
-
-            Vector3 torso = _neck.position - _spine.position;
-            Vector3 planar = Vector3.ProjectOnPlane(torso, axis);
-
-            if (planar.sqrMagnitude < 0.000001f)
-                return;
-
-            float pitch = Vector3.SignedAngle(Vector3.up, planar, axis);
-            if (Mathf.Abs(pitch) < 0.05f)
-                return;
-
-            RotateWorld(_spine, -pitch * weight, axis);
         }
 
         private Transform FindBone(string boneName)
