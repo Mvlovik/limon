@@ -1,0 +1,74 @@
+newmtl M_00
+Kd 1 1 1
+map_Kd ../Textures/Facades_05_basecolor.jpg
+
+newmtl M_01
+Kd 1 1 1
+map_Kd ../Textures/concrete4_BaseColor.jpg
+
+newmtl M_02
+Kd 1 1 1
+map_Kd ../Textures/Facades_06_basecolor.jpg
+
+newmtl M_03
+Kd 1 1 1
+map_Kd ../Textures/concrete4_BaseColor.jpg
+
+newmtl M_04
+Kd 1 1 1
+map_Kd ../Textures/concrete4_BaseColor.jpg
+
+newmtl M_05
+Kd 1 1 1
+map_Kd ../Textures/Facades_03v2_basecolor.jpg
+
+newmtl M_06
+Kd 1 1 1
+map_Kd ../Textures/Facades_05_basecolor.jpg
+
+newmtl M_07
+Kd 1 1 1
+map_Kd ../Textures/Facades_03v2_basecolor.jpg
+
+newmtl M_08
+Kd 1 1 1
+map_Kd ../Textures/concrete4_BaseColor.jpg
+
+newmtl M_09
+Kd 1 1 1
+map_Kd ../Textures/Facades_05_basecolor.jpg
+
+newmtl M_10
+Kd 1 1 1
+map_Kd ../Textures/concrete4_BaseColor.jpg
+
+newmtl M_11
+Kd 1 1 1
+map_Kd ../Textures/night_Abandoned_warehouse_Facade_Base_Color.jpg
+
+newmtl M_12
+Kd 1 1 1
+map_Kd ../Textures/concrete4_BaseColor.jpg
+
+newmtl M_13
+Kd 1 1 1
+map_Kd ../Textures/Facades_03v2_basecolor.jpg
+
+newmtl M_14
+Kd 1 1 1
+map_Kd ../Textures/building_facade1.jpg
+
+newmtl M_15
+Kd 0.028205253183841705 0.028205253183841705 0.028205253183841705
+
+newmtl M_16
+Kd 1 1 1
+map_Kd ../Textures/freepik__front-view-of-a-classic-appartment-building-in-new__12284.png
+
+newmtl M_17
+Kd 1 1 1
+map_Kd ../Textures/Abandoned_warehouse_Facade_Base_Color.jpg
+
+newmtl M_18
+Kd 1 1 1
+map_Kd ../Textures/Black_clay_Rooftop_Tiles__Base_Color.jpg

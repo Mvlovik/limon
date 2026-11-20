@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c7bd113f7836d43ac892c1b3f0cba8, type: 3}
+  m_Name: THS_RustamDoorConversation
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Story.ThoughtSequence
+  lines:
+  - {fileID: 11400000, guid: 9dddaff8d5c45b14b9bd939c679d5d4e, type: 2}
+  - {fileID: 11400000, guid: fe5fc94f6c23e5d4b87e330ae1b1d286, type: 2}
+  - {fileID: 11400000, guid: 927ee56226550aa4383069637d50d0f8, type: 2}
+  - {fileID: 11400000, guid: 4dd8a8e3eaf6a2e44867bff52f5c2fcf, type: 2}
+  - {fileID: 11400000, guid: 88afe06b3e47e7e4da20eba3315aa085, type: 2}
+  - {fileID: 11400000, guid: cccbec40e17333a4da22a145510b19a5, type: 2}
+  music: {fileID: 0}
+  stopMusicAfter: 0
+  objective: {fileID: 0}

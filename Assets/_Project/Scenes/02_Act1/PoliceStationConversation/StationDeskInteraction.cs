@@ -20,7 +20,7 @@ namespace GameLimon.Staging
         [SerializeField] private Transform spawn;
         [SerializeField] private GameObject editorPlayerPrefab;
         [SerializeField] private GameObject editorServicesPrefab;
-        [SerializeField] private float sitDuration = 0.65f;
+        [SerializeField, Min(0f)] private float seatingFadeDuration = 0.32f;
 
         [Header("Cutscene")]
         [Tooltip("Общий сценарий катсцены. Если назначен, используется вместо встроенной логики.")]
@@ -115,7 +115,8 @@ namespace GameLimon.Staging
             if (interactor != null) interactor.enabled = false;
             StoryDirector.Instance?.Stop();
             ObjectiveUI.Instance?.Hide();
-            var canvas = GameRoot.Instance != null ? GameRoot.Instance.UI?.Canvas : null;
+            var ui = GameRoot.Instance != null ? GameRoot.Instance.UI : null;
+            var canvas = ui != null ? ui.Canvas : null;
             var promptTransform = canvas != null ? canvas.transform.Find("InteractionPrompt") : null;
             if (promptTransform != null && promptTransform.gameObject.activeSelf)
             {
@@ -123,11 +124,11 @@ namespace GameLimon.Staging
                 interactionPrompt.SetActive(false);
             }
 
-            Camera fromCamera = null;
+            if (ui != null) yield return ui.FadeTo(1f, seatingFadeDuration);
+
             foreach (var camera in player.GetComponentsInChildren<Camera>())
             {
                 if (!camera.enabled) continue;
-                fromCamera = camera;
                 playerCameras.Add(camera);
                 camera.enabled = false;
             }
@@ -138,21 +139,11 @@ namespace GameLimon.Staging
                 listener.enabled = false;
             }
 
-            Transform view = seatedCamera.transform;
-            Vector3 destination = view.position;
-            Quaternion rotation = view.rotation;
-            Vector3 origin = fromCamera != null ? fromCamera.transform.position : destination;
-            Quaternion originRotation = fromCamera != null ? fromCamera.transform.rotation : rotation;
             firstPerson.SetActive(true);
-            for (float t = 0f; t < sitDuration; t += Time.deltaTime)
-            {
-                float blend = Mathf.SmoothStep(0f, 1f, t / Mathf.Max(0.01f, sitDuration));
-                view.SetPositionAndRotation(Vector3.Lerp(origin, destination, blend),
-                    Quaternion.Slerp(originRotation, rotation, blend));
-                yield return null;
-            }
-            view.SetPositionAndRotation(destination, rotation);
             joe.SetActive(true);
+            conversation.clip.SampleAnimation(conversation.gameObject, 0f);
+            if (ui != null) yield return ui.FadeTo(0f, seatingFadeDuration);
+
             conversation.wrapMode = WrapMode.ClampForever;
             conversation.Play();
             if (conversationAudio != null) conversationAudio.Play();
