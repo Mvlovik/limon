@@ -11,6 +11,10 @@ namespace GameLimon.Player
         [Tooltip("Трансформ камеры-ребёнка")]
         [SerializeField] private Transform cameraTransform;
 
+        [Header("Камера")]
+        [Tooltip("Вертикальный FOV игровой камеры. Меняется здесь, а не в компоненте Camera.")]
+        [SerializeField, Range(40f, 120f)] private float fieldOfView = 90f;
+
         [Header("Сенса")]
         [Tooltip("Множитель для мыши и стика.")]
         [SerializeField] private float sensitivity = 0.11f;
@@ -47,6 +51,7 @@ namespace GameLimon.Player
 
         private InputReader _input;
         private PlayerMotor _motor;
+        private Camera _camera;
 
         private float _pitch;
         private float _bobPhase;
@@ -63,6 +68,9 @@ namespace GameLimon.Player
         {
             if (cameraTransform == null && Camera.main != null)
                 cameraTransform = Camera.main.transform;
+
+            _camera = cameraTransform != null ? cameraTransform.GetComponent<Camera>() : null;
+            ApplyFieldOfView();
 
             _motor = GetComponent<PlayerMotor>();
 
@@ -180,6 +188,25 @@ namespace GameLimon.Player
             float pitch = cameraTransform.localEulerAngles.x;
             _pitch = pitch > 180f ? pitch - 360f : pitch;
             _smoothedEyeHeight = cameraTransform.localPosition.y;
+        }
+
+        private void OnValidate()
+        {
+            if (_camera == null && cameraTransform != null)
+                _camera = cameraTransform.GetComponent<Camera>();
+
+            if (_camera == null)
+                _camera = Camera.main;
+
+            ApplyFieldOfView();
+        }
+
+        private void ApplyFieldOfView()
+        {
+            if (_camera == null)
+                return;
+
+            _camera.fieldOfView = Mathf.Clamp(fieldOfView, 1f, 179f);
         }
 
         private void ResolveInput()

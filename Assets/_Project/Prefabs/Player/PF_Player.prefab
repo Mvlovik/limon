@@ -1548,6 +1548,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Player.PlayerLook
   cameraTransform: {fileID: 3831196969566181604}
+  fieldOfView: 90
   sensitivity: 0.12
   minPitch: -85
   maxPitch: 30
@@ -1693,7 +1694,7 @@ Camera:
     height: 1
   near clip plane: 0.03
   far clip plane: 300
-  field of view: 65
+  field of view: 90
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
