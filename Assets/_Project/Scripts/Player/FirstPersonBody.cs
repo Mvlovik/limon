@@ -25,6 +25,32 @@ namespace GameLimon.Player
         private Transform _leftLeg;
         private Transform _rightLeg;
         private float _airTime;
+        private Animator _externalAnimator;
+        private Renderer[] _hiddenRenderers;
+
+        public RuntimeAnimatorController LocomotionController => animator != null ? animator.runtimeAnimatorController : null;
+
+        public void SetExternalView(bool active, Animator externalAnimator = null)
+        {
+            _externalAnimator = active ? externalAnimator : null;
+            if (active && _hiddenRenderers == null)
+            {
+                var hidden = new System.Collections.Generic.List<Renderer>();
+                foreach (var renderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    if (renderer.forceRenderingOff) continue;
+                    renderer.forceRenderingOff = true;
+                    hidden.Add(renderer);
+                }
+                _hiddenRenderers = hidden.ToArray();
+            }
+            else if (!active && _hiddenRenderers != null)
+            {
+                foreach (var renderer in _hiddenRenderers)
+                    if (renderer != null) renderer.forceRenderingOff = false;
+                _hiddenRenderers = null;
+            }
+        }
 
         private void Awake()
         {
@@ -54,12 +80,19 @@ namespace GameLimon.Player
             float blend = Mathf.Clamp01(motor.Speed01 / ratio);
             bool crouching = motor.CrouchAmount > 0.5f;
 
-            animator.SetFloat("Speed", blend, 0.08f, Time.deltaTime);
-            animator.SetFloat("PlaybackSpeed", Mathf.Lerp(0.9f, 1.0f, blend));
-            animator.SetFloat("CrouchSpeed", Mathf.Lerp(0.1f, 1f, blend));
-            animator.SetBool("Crouching", crouching);
+            UpdateLocomotion(animator, blend, crouching);
+            if (_externalAnimator != null)
+                UpdateLocomotion(_externalAnimator, blend, crouching);
 
             _airTime = motor.IsGrounded ? 0f : _airTime + Time.deltaTime;
+        }
+
+        private static void UpdateLocomotion(Animator target, float blend, bool crouching)
+        {
+            target.SetFloat("Speed", blend, 0.08f, Time.deltaTime);
+            target.SetFloat("PlaybackSpeed", Mathf.Lerp(0.9f, 1.0f, blend));
+            target.SetFloat("CrouchSpeed", Mathf.Lerp(0.1f, 1f, blend));
+            target.SetBool("Crouching", crouching);
         }
 
         private void LateUpdate()
