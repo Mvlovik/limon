@@ -21,11 +21,7 @@ namespace GameLimon.Story
             host.transform.SetParent(canvas.transform, false);
 
             var rect = (RectTransform)host.transform;
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.sizeDelta = new Vector2(1400f, 170f);
-            rect.anchoredPosition = new Vector2(0f, 260f);
+            SetCaptionRect(rect);
 
             CanvasGroup group = host.AddComponent<CanvasGroup>();
             group.alpha = 0f;
@@ -42,17 +38,7 @@ namespace GameLimon.Story
             labelRect.anchoredPosition = Vector2.zero;
 
             Text label = labelObject.AddComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>(FontResource);
-            label.fontSize = 30;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.color = new Color(0.92f, 0.9f, 0.86f, 1f);
-            label.horizontalOverflow = HorizontalWrapMode.Wrap;
-            label.verticalOverflow = VerticalWrapMode.Overflow;
-            label.raycastTarget = false;
-
-            var shadow = labelObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            shadow.effectDistance = new Vector2(1.5f, -1.5f);
+            StyleCaption(label);
 
             var panel = host.AddComponent<ThoughtUI>();
             panel._group = group;
@@ -61,15 +47,57 @@ namespace GameLimon.Story
             return panel;
         }
 
+        public static ThoughtUI GetOrCreate(Canvas canvas)
+        {
+            if (canvas == null) return null;
+            var existing = canvas.GetComponentInChildren<ThoughtUI>(true);
+            return existing != null ? existing : Create(canvas);
+        }
+
+        public static void SetCaptionRect(RectTransform rect)
+        {
+            rect.anchorMin = new Vector2(0.135f, 0f);
+            rect.anchorMax = new Vector2(0.865f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(0f, 108f);
+            rect.anchoredPosition = new Vector2(0f, 11f);
+        }
+
+        public static void StyleCaption(Text label)
+        {
+            label.font = Resources.GetBuiltinResource<Font>(FontResource);
+            label.fontSize = 30;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = new Color(0.92f, 0.9f, 0.86f, 1f);
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Overflow;
+            label.raycastTarget = false;
+
+            var shadow = label.GetComponent<Shadow>();
+            if (shadow == null) shadow = label.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            shadow.effectDistance = new Vector2(1.5f, -1.5f);
+        }
+
+        public void ShowImmediate(string text)
+        {
+            _label.text = text;
+            _group.alpha = 1f;
+        }
+
         /// <summary>Чтоб пичатала па буквом</summary>
         public IEnumerator Play(ThoughtLine line, float charsPerSecond, float fadeDuration)
         {
             if (line == null || _label == null || string.IsNullOrEmpty(line.Text))
                 yield break;
 
-            string text = line.Text;
+            yield return PlayText(line.Text, charsPerSecond, line.ResolveDuration(charsPerSecond), fadeDuration);
+        }
+
+        public IEnumerator PlayText(string text, float charsPerSecond, float hold, float fadeDuration)
+        {
+            if (_label == null || string.IsNullOrEmpty(text)) yield break;
             float revealDuration = Mathf.Max(0.2f, text.Length / Mathf.Max(1f, charsPerSecond));
-            float hold = line.ResolveDuration(charsPerSecond);
 
             _label.text = string.Empty;
             yield return FadeTo(1f, fadeDuration);

@@ -6,6 +6,7 @@ using GameLimon.Player;
 using GameLimon.Story;
 using GameLimon.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace GameLimon.Staging
 {
@@ -20,7 +21,7 @@ namespace GameLimon.Staging
         [SerializeField] private Transform spawn;
         [SerializeField] private GameObject editorPlayerPrefab;
         [SerializeField] private GameObject editorServicesPrefab;
-        [SerializeField] private float sitDuration = 0.65f;
+        [SerializeField, Min(0f)] private float seatingFadeDuration = 0.32f;
 
         [Header("Cutscene")]
         [Tooltip("Общий сценарий катсцены. Если назначен, используется вместо встроенной логики.")]
@@ -32,7 +33,15 @@ namespace GameLimon.Staging
         [Tooltip("Пауза перед затемнением после конца разговора, сек")]
         [SerializeField] private float endHoldDuration = 0.6f;
 
+        private const float RingStart = 21.65f;
+        private const float PhoneAnswered = 23.65f;
+        private const float PhoneReturn = 46.5f;
+        private const float PhoneLoopStart = 30f;
+        private const string FirstChoice = "А с Мишкой что?";
+        private const string SecondChoice = "А с последним что?";
+
         private bool started;
+        private ThoughtUI captions;
         private GameObject player;
         private PlayerMotor motor;
         private PlayerLook look;
@@ -115,7 +124,8 @@ namespace GameLimon.Staging
             if (interactor != null) interactor.enabled = false;
             StoryDirector.Instance?.Stop();
             ObjectiveUI.Instance?.Hide();
-            var canvas = GameRoot.Instance != null ? GameRoot.Instance.UI?.Canvas : null;
+            var ui = GameRoot.Instance != null ? GameRoot.Instance.UI : null;
+            var canvas = ui != null ? ui.Canvas : null;
             var promptTransform = canvas != null ? canvas.transform.Find("InteractionPrompt") : null;
             if (promptTransform != null && promptTransform.gameObject.activeSelf)
             {
@@ -123,11 +133,11 @@ namespace GameLimon.Staging
                 interactionPrompt.SetActive(false);
             }
 
-            Camera fromCamera = null;
+            if (ui != null) yield return ui.FadeTo(1f, seatingFadeDuration);
+
             foreach (var camera in player.GetComponentsInChildren<Camera>())
             {
                 if (!camera.enabled) continue;
-                fromCamera = camera;
                 playerCameras.Add(camera);
                 camera.enabled = false;
             }
@@ -138,36 +148,142 @@ namespace GameLimon.Staging
                 listener.enabled = false;
             }
 
-            Transform view = seatedCamera.transform;
-            Vector3 destination = view.position;
-            Quaternion rotation = view.rotation;
-            Vector3 origin = fromCamera != null ? fromCamera.transform.position : destination;
-            Quaternion originRotation = fromCamera != null ? fromCamera.transform.rotation : rotation;
             firstPerson.SetActive(true);
-            for (float t = 0f; t < sitDuration; t += Time.deltaTime)
-            {
-                float blend = Mathf.SmoothStep(0f, 1f, t / Mathf.Max(0.01f, sitDuration));
-                view.SetPositionAndRotation(Vector3.Lerp(origin, destination, blend),
-                    Quaternion.Slerp(originRotation, rotation, blend));
-                yield return null;
-            }
-            view.SetPositionAndRotation(destination, rotation);
             joe.SetActive(true);
+            conversation.clip.SampleAnimation(conversation.gameObject, 0f);
+            DisableBakedCaptions();
+            captions = ThoughtUI.GetOrCreate(canvas);
+            if (ui != null) yield return ui.FadeTo(0f, seatingFadeDuration);
+
             conversation.wrapMode = WrapMode.ClampForever;
             conversation.Play();
             if (conversationAudio != null) conversationAudio.Play();
 
+            var state = conversation[conversation.clip.name];
+            if (state != null) state.wrapMode = WrapMode.ClampForever;
+            yield return PlayConversationCaptions(state);
             if (completeSceneWhenFinished)
                 yield return FinishAndAdvance();
         }
 
+        private void DisableBakedCaptions()
+        {
+            var overlay = conversation.transform.Find("UI");
+            if (overlay == null) return;
+            foreach (Transform item in overlay)
+            {
+                if (item.name == "SubtitlePlate" || item.name == "RingCaption" ||
+                    item.name.StartsWith("Line", System.StringComparison.Ordinal))
+                    item.gameObject.SetActive(false);
+            }
+        }
+
+        private IEnumerator PlayConversationCaptions(AnimationState state)
+        {
+            if (state == null) yield break;
+            if (captions == null)
+            {
+                yield return WaitForClip(state, state.length);
+                yield break;
+            }
+
+            yield return WaitForClip(state, 3.22f);
+            yield return SpeakUntil(state, "Джо: Привет, ГГ. Ты как?", 5.16f);
+            yield return WaitForClip(state, 5.25f);
+            yield return SpeakUntil(state, "ГГ: Привет Джо, все хорошо, кстати я пришел первым, с тебя пончики.", 10.43f);
+            yield return WaitForClip(state, 10.75f);
+            yield return SpeakUntil(state, "Джо: Ахах, думал забудешь, ну ничего, они уже в машине", 14.43f);
+            yield return WaitForClip(state, 14.75f);
+            yield return SpeakUntil(state, "ГГ: Раз ты пришел, давай сразу за дело, поехали в патруль, сегодня у нас Меридиан-", RingStart);
+            yield return WaitForClip(state, RingStart);
+            captions.ShowImmediate("[Звонит телефон]");
+            yield return WaitForClip(state, PhoneAnswered);
+            captions.Hide();
+
+            // Keep the existing handset hold animated while the player chooses and reads.
+            var hold = StartCoroutine(HoldHandset(state));
+            yield return Speak("Рита: ГГ, это ты, только трубку не бросай, ладно?");
+            yield return new WaitForSecondsRealtime(.55f);
+            yield return Speak("ГГ: Рита.");
+            yield return Speak("Рита: Они его забрали. Рустама. Прямо сейчас. Он даже куртку не взял.");
+            yield return Speak("ГГ: Кто забрал. Рита, кто?!");
+            yield return Speak("Рита: Наши. Четверо… нет, трое. Молодые совсем. Один сказал: \"Дядя Рустам, пошли, поговорить надо\". Как будто они его знают, двое с ним пошло.");
+
+            int choice = 0;
+            captions.ShowImmediate($"[1] {FirstChoice}\n[2] {SecondChoice}");
+            while (choice == 0)
+            {
+                var keyboard = Keyboard.current;
+                var gamepad = Gamepad.current;
+                if ((keyboard != null && (keyboard.digit1Key.isPressed || keyboard.numpad1Key.isPressed)) ||
+                    (gamepad != null && gamepad.dpad.up.isPressed))
+                    choice = 1;
+                else if ((keyboard != null && (keyboard.digit2Key.isPressed || keyboard.numpad2Key.isPressed)) ||
+                         (gamepad != null && gamepad.dpad.down.isPressed))
+                    choice = 2;
+                else
+                    yield return null;
+            }
+
+            captions.Hide();
+            GameRoot.Instance?.State.SetChoice("A1_S03_RitaQuestion", choice == 1 ? "Mishka" : "LastMan");
+            yield return Speak("ГГ: " + (choice == 1 ? FirstChoice : SecondChoice));
+            if (choice == 1)
+            {
+                yield return Speak("Рита: …Мишка? Мишка, стой! Я кому сказала — в комнату!..");
+                yield return Speak("Рита: В комнате он, сам знаешь, любопытный, глаз да глаз");
+            }
+            else
+            {
+                yield return Speak("Рита: Остался. Внизу на лавке сидит, курит. Сказал, что подождёт. Кого он ждёт, ГГ?");
+            }
+
+            yield return Speak("Рита: Они не били его, ГГ. Они смеялись. И он пошёл. Сам пошёл, понимаешь?");
+            yield return Speak("ГГ: Я понял кто это и знаю где собираются... Запрись... На цепочку... Не открывай — даже если это я. Едем");
+            StopCoroutine(hold);
+            state.time = PhoneReturn;
+            yield return WaitForClip(state, state.length);
+        }
+
+        private IEnumerator SpeakUntil(AnimationState state, string text, float end)
+        {
+            float start = state.time;
+            int shown = 0;
+            while (state.time < end - .015f)
+            {
+                var length = Mathf.Min(text.Length, Mathf.FloorToInt((state.time - start) * 40f));
+                if (length > shown)
+                {
+                    shown = length;
+                    captions.ShowImmediate(text.Substring(0, shown));
+                }
+                yield return null;
+            }
+            captions.Hide();
+        }
+
+        private IEnumerator Speak(string text, float hold = 2.5f) =>
+            captions.PlayText(text, 40f, hold, .13f);
+
+        private static IEnumerator WaitForClip(AnimationState state, float time)
+        {
+            // A clamped legacy clip can land just below length on its last frame.
+            while (state.time < time - .015f)
+                yield return null;
+        }
+
+        private static IEnumerator HoldHandset(AnimationState state)
+        {
+            while (true)
+            {
+                if (state.time >= PhoneReturn - .12f)
+                    state.time = PhoneLoopStart;
+                yield return null;
+            }
+        }
+
         private IEnumerator FinishAndAdvance()
         {
-            // WrapMode.ClampForever держит isPlaying=true, поэтому ждём длину клипа.
-            float clipLength = conversation.clip != null ? conversation.clip.length : 0f;
-            if (clipLength > 0f)
-                yield return new WaitForSeconds(clipLength);
-
             if (endHoldDuration > 0f)
                 yield return new WaitForSeconds(endHoldDuration);
 
@@ -182,6 +298,7 @@ namespace GameLimon.Staging
         private void OnDestroy()
         {
             if (!started) return;
+            if (captions != null) captions.Hide();
             if (motor != null) motor.SetControlLocked(false);
             if (look != null) look.PoseLocked = false;
             if (interactor != null) interactor.enabled = true;
@@ -201,3 +318,5 @@ namespace GameLimon.Staging
 #endif
     }
 }
+
+

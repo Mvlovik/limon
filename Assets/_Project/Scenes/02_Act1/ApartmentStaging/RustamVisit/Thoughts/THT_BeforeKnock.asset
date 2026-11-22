@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcbaf900d9374bb439cef4c64054ec84, type: 3}
+  m_Name: THT_BeforeKnock
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Story.ThoughtLine
+  text: "\u041e\u043f\u044f\u0442\u044c \u043f\u043e\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a, \u043f\u043e\u0439\u0434\u0443 \u0437\u0430\u0432\u0430\u0440\u044e \u043a\u043e\u0444\u0435"
+  duration: 3
+  voice: {fileID: 0}

@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcbaf900d9374bb439cef4c64054ec84, type: 3}
+  m_Name: THT_RustamDoor_04
+  m_EditorClassIdentifier: Assembly-CSharp::GameLimon.Story.ThoughtLine
+  text: "\u0413\u0413: \u0412 \u0442\u0430\u043a\u043e\u043c \u0441\u043b\u0443\u0447\u0430\u0435 \u0437\u0430 \u043e\u043f\u0435\u0440\u0430\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c \u0441 \u043c\u0435\u043d\u044f \u043f\u0438\u0432\u043e"
+  duration: 2
+  voice: {fileID: 0}

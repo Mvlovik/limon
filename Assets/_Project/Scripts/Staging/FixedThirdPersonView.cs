@@ -25,6 +25,8 @@ namespace GameLimon.Staging
         [SerializeField] private BoxCollider secondaryCameraZone;
         [SerializeField] private float doorwayHysteresis = 0.08f;
         [SerializeField] private Transform standIn;
+        [SerializeField] private GameObject animatedCharacter;
+        [SerializeField] private Avatar characterAvatar;
         [SerializeField] private Collider[] interactionTargets;
         [SerializeField] private float interactionRange = 2.35f;
 
@@ -36,6 +38,9 @@ namespace GameLimon.Staging
         private Transform _player;
         private PlayerLook _look;
         private PlayerMotor _motor;
+        private FirstPersonBody _firstPersonBody;
+        private Transform _animatedBody;
+        private Animator _characterAnimator;
         private Camera _playerCamera;
         private AudioListener _playerListener;
         private bool _used, _oldPoseLocked, _oldCameraEnabled, _oldListenerEnabled;
@@ -75,6 +80,7 @@ namespace GameLimon.Staging
                 _player = playerObject.transform;
                 _look = playerObject.GetComponent<PlayerLook>();
                 _motor = playerObject.GetComponent<PlayerMotor>();
+                _firstPersonBody = playerObject.GetComponentInChildren<FirstPersonBody>(true);
                 _playerCamera = playerObject.GetComponentInChildren<Camera>(true);
                 _playerListener = _playerCamera != null ? _playerCamera.GetComponent<AudioListener>() : null;
             }
@@ -106,10 +112,41 @@ namespace GameLimon.Staging
             if (_playerListener != null) _playerListener.enabled = false;
             roomCamera.gameObject.SetActive(true);
             _movementYaw = roomCamera.transform.eulerAngles.y;
-            if (standIn != null) standIn.gameObject.SetActive(true);
-            if (standIn != null) standIn.rotation = _player.rotation;
+            PrepareAnimatedBody();
+            var viewBody = _animatedBody != null ? _animatedBody : standIn;
+            if (viewBody != null)
+            {
+                viewBody.SetPositionAndRotation(_player.position, _player.rotation);
+                viewBody.gameObject.SetActive(true);
+                _firstPersonBody?.SetExternalView(true, _characterAnimator);
+            }
             _lastPosition = _player.position;
             IsActive = true;
+        }
+
+        private void PrepareAnimatedBody()
+        {
+            if (_animatedBody != null || animatedCharacter == null || characterAvatar == null ||
+                !characterAvatar.isValid || !characterAvatar.isHuman || _firstPersonBody == null ||
+                _firstPersonBody.LocomotionController == null)
+                return;
+
+            var instance = Instantiate(animatedCharacter, transform);
+            var model = instance.transform.Find("Model");
+            if (model == null)
+            {
+                Destroy(instance);
+                return;
+            }
+
+            _characterAnimator = model.GetComponent<Animator>();
+            if (_characterAnimator == null) _characterAnimator = model.gameObject.AddComponent<Animator>();
+            _characterAnimator.avatar = characterAvatar;
+            _characterAnimator.runtimeAnimatorController = _firstPersonBody.LocomotionController;
+            _characterAnimator.applyRootMotion = false;
+            _characterAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            _animatedBody = instance.transform;
+            model.localPosition += Vector3.down * 0.02f;
         }
 
         private void LateUpdate()
@@ -127,15 +164,19 @@ namespace GameLimon.Staging
             _playerCamera.transform.localPosition = new Vector3(0f, _motor != null ? _motor.EyeHeight : 1.62f, 0f);
             AimInteractionView();
 
-            if (standIn != null)
+            var viewBody = _animatedBody != null ? _animatedBody : standIn;
+            if (viewBody != null)
             {
-                standIn.position = _player.position;
-                standIn.localScale = new Vector3(1f, _motor != null ? 1f - 0.35f * _motor.CrouchAmount : 1f, 1f);
+                viewBody.position = _player.position;
                 var movement = _player.position - _lastPosition;
                 movement.y = 0f;
                 if (movement.sqrMagnitude > 0.00001f)
-                    standIn.rotation = Quaternion.Slerp(standIn.rotation, Quaternion.LookRotation(movement), 12f * Time.deltaTime);
-                AnimateCharacter(movement);
+                    viewBody.rotation = Quaternion.Slerp(viewBody.rotation, Quaternion.LookRotation(movement), 12f * Time.deltaTime);
+                if (_animatedBody == null)
+                {
+                    viewBody.localScale = new Vector3(1f, _motor != null ? 1f - 0.35f * _motor.CrouchAmount : 1f, 1f);
+                    AnimateCharacter(movement);
+                }
             }
             _lastPosition = _player.position;
         }
@@ -245,6 +286,8 @@ namespace GameLimon.Staging
             if (roomCamera != null) roomCamera.gameObject.SetActive(false);
             if (hallwayCamera != null) hallwayCamera.gameObject.SetActive(false);
             if (standIn != null) standIn.gameObject.SetActive(false);
+            if (_animatedBody != null) _animatedBody.gameObject.SetActive(false);
+            _firstPersonBody?.SetExternalView(false);
             if (_playerCamera != null)
             {
                 _playerCamera.transform.localRotation = Quaternion.identity;

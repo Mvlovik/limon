@@ -2,6 +2,7 @@ using System.Collections;
 using GameLimon.Core;
 using GameLimon.Story;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace GameLimon.UI
@@ -65,6 +66,9 @@ namespace GameLimon.UI
         /// <summary>Показать указание с произвольной иконкой и текстом.</summary>
         public void Show(Sprite icon, string text)
         {
+            if (HideForScene(SceneManager.GetActiveScene()))
+                return;
+
             if (_label == null)
                 return;
 
@@ -220,6 +224,31 @@ namespace GameLimon.UI
             return panel;
         }
 
+        private bool HideForScene(Scene scene)
+        {
+            if (scene.name != "A1_S01_Apartment" && scene.name != "A1_S02_Alley" &&
+                scene.name != "PoliceStationConversation")
+                return false;
+
+            if (_fade != null)
+            {
+                StopCoroutine(_fade);
+                _fade = null;
+            }
+
+            if (_group != null)
+                _group.alpha = 0f;
+            if (_label != null)
+                _label.text = string.Empty;
+
+            return true;
+        }
+
+        private void OnActiveSceneChanged(Scene previous, Scene next)
+        {
+            HideForScene(next);
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -229,10 +258,12 @@ namespace GameLimon.UI
             }
 
             Instance = this;
+            SceneManager.activeSceneChanged += OnActiveSceneChanged;
         }
 
         private void OnDestroy()
         {
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
             if (Instance == this)
                 Instance = null;
         }
