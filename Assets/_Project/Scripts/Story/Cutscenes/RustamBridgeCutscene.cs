@@ -9,7 +9,7 @@ using UnityEngine.Playables;
 namespace GameLimon.Story
 {
     /// <summary>
-    /// Scene 4 cinematic: trigger -> dialogue -> Wait/Act choice -> branch -> shared finale.
+    /// Scene 4 cinematic: trigger -> dialogue -> branch A -> shared finale.
     /// The scene composition lives in A1_S04_UnderBridge; this component only drives
     /// the flow and swaps staging groups. Timeline/Cinemachine handle all camera work.
     /// </summary>
@@ -51,14 +51,6 @@ namespace GameLimon.Story
         [SerializeField] private AudioSource cutsceneAudio;
         [SerializeField, Range(0f, 1f)] private float gunshotVolume = 0.9f;
         [SerializeField, Range(0f, 1f)] private float ringingVolume = 0.35f;
-
-        [Header("Pacing")]
-        [SerializeField] private float choiceTimeout = 5f;
-        [SerializeField] private int qtePressesRequired = 9;
-        [SerializeField] private float qteDuration = 4f;
-
-        [Header("Debug")]
-        [SerializeField] private bool debugForceAct;
 
         private CutsceneOverlayUI _ui;
         private GameObject _player;
@@ -127,18 +119,7 @@ namespace GameLimon.Story
 
             yield return PlayIntro();
 
-            CutsceneChoice choice = debugForceAct ? CutsceneChoice.Act : CutsceneChoice.Wait;
-            yield return _ui.ShowChoice("Что делает ГГ?", choiceTimeout, value =>
-            {
-                if (!debugForceAct)
-                    choice = value;
-            });
-            Debug.Log($"[BridgeCutscene] choice={choice}");
-
-            if (choice == CutsceneChoice.Wait)
-                yield return BranchWait();
-            else
-                yield return BranchAct();
+            yield return BranchWait();
 
             yield return PlayFinale();
 
@@ -180,35 +161,14 @@ namespace GameLimon.Story
             yield return _ui.PlayLine("Джо", "Сейчас!", 40f, 0.3f);
             yield return _ui.PlayLine("ГГ и Джо", "ПОЛИЦИЯ! БРОСАЙТЕ ОРУЖИЕ!", 65f, 0.3f);
 
-            yield return GunfireAndFade(keepOnlyRustam: false);
+            yield return GunfireAndFade();
             yield return PlayAftermath();
 
             yield return _ui.PlayLine("Рустам", "Слушай... тумбочка... у кровати... там подарок от твоего отца... посмотри...", 42f, 1.4f);
             yield return _ui.PlayLine("Джо", "ГГ! Сюда! Быстрее!", 40f, 1.0f);
         }
 
-        private IEnumerator BranchAct()
-        {
-            FocusCamera("CM_Shot_Rustam");
-            yield return _ui.PlayLine("Джо", "Стой, придурок! У них ствол!", 42f, 0.7f);
-
-            bool brokeFree = false;
-            yield return _ui.RunQte("Вырваться из хвата Джо", qteDuration, qtePressesRequired, result => brokeFree = result);
-
-            if (!brokeFree)
-                yield return _ui.PlayLine("Джо", "Чёрт, я тебя не удержу...", 40f, 0.3f);
-
-            yield return _ui.PlayLine("ГГ", "ПОЛИЦИЯ! ОТПУСТИ ЕГО!", 60f, 0.3f);
-
-            yield return GunfireAndFade(keepOnlyRustam: true);
-            yield return PlayAftermath();
-
-            yield return _ui.PlayLine("Рустам", "Слушай... тумбочка... у кровати... там подарок от твоего отца... посмотри...", 42f, 1.4f);
-            yield return _ui.PlayLine("Джо", "Твою мать! Они ушли! Ты их спугнул!", 44f, 0.7f);
-            yield return _ui.PlayLine("Джо", "ГГ... ГГ, иди сюда... Быстрее", 40f, 1.0f);
-        }
-
-        private IEnumerator GunfireAndFade(bool keepOnlyRustam)
+        private IEnumerator GunfireAndFade()
         {
             Debug.Log("[BridgeCutscene] gunfire");
             StopDirector(introDirector);
@@ -227,7 +187,7 @@ namespace GameLimon.Story
             yield return new WaitForSecondsRealtime(2.0f);
 
             SetStandingCast(false);
-            SetAftermath(true, !keepOnlyRustam);
+            SetAftermath(true, true);
 
             if (pistolInThugHand != null)
                 pistolInThugHand.SetActive(false);
@@ -327,7 +287,9 @@ namespace GameLimon.Story
             while (director.state == PlayState.Playing)
                 yield return null;
 
-            yield return new WaitForSecondsRealtime(0.15f);
+            // Не ждём лишний кадр: при остановке Timeline Cinemachine возвращает
+            // приоритеты камер к состоянию на момент запуска, и без немедленного
+            // FocusCamera следующего шота камера на мгновение «прыгает» назад.
         }
 
         private void SetStandingCast(bool active)

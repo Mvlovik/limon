@@ -250,9 +250,6 @@ public static class BridgeCutsceneSetup
         SetObject(so, "cutsceneAudio", audioSource);
         SetFloat(so, "gunshotVolume", 0.9f);
         SetFloat(so, "ringingVolume", 0.35f);
-        SetFloat(so, "choiceTimeout", 5f);
-        SetInt(so, "qtePressesRequired", 9);
-        SetFloat(so, "qteDuration", 4f);
         so.ApplyModifiedPropertiesWithoutUndo();
 
         audioSource.playOnAwake = false;
@@ -738,13 +735,6 @@ public static class BridgeCutsceneSetup
         var p = so.FindProperty(name);
         if (p != null) p.floatValue = value;
         else Debug.LogWarning("[BridgeBuilder] Missing float " + name);
-    }
-
-    static void SetInt(SerializedObject so, string name, int value)
-    {
-        var p = so.FindProperty(name);
-        if (p != null) p.intValue = value;
-        else Debug.LogWarning("[BridgeBuilder] Missing int " + name);
     }
 
     static void SetBool(SerializedObject so, string name, bool value)
