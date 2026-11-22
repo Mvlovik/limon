@@ -18,6 +18,10 @@ namespace GameLimon.Staging
         [SerializeField] private Camera seatedCamera;
         [SerializeField] private GameObject joe;
         [SerializeField] private AudioSource conversationAudio;
+        [SerializeField] private AudioSource handsetAudio;
+        [SerializeField] private AudioSource stationAmbience;
+        [SerializeField] private AudioSource speechAudio;
+        [SerializeField] private AudioClip ritaSpeech;
         [SerializeField] private Transform spawn;
         [SerializeField] private GameObject editorPlayerPrefab;
         [SerializeField] private GameObject editorServicesPrefab;
@@ -34,13 +38,21 @@ namespace GameLimon.Staging
         [SerializeField] private float endHoldDuration = 0.6f;
 
         private const float RingStart = 21.65f;
+        private const float HandsetPickup = 22.52f;
+        private const float DialogueAmbienceGain = .38f;
         private const float PhoneAnswered = 23.65f;
         private const float PhoneReturn = 46.5f;
         private const float PhoneLoopStart = 30f;
         private const string FirstChoice = "А с Мишкой что?";
         private const string SecondChoice = "А с последним что?";
 
+        private static readonly float[] SpeechOffsets = { .01f, .49f, .24f, .76f, .12f, .62f, .36f, .87f };
+
         private bool started;
+        private MaleDialoguePlayback maleSpeech;
+        private int ritaLine;
+        private bool dialogueActive;
+        private float normalAmbienceVolume;
         private ThoughtUI captions;
         private GameObject player;
         private PlayerMotor motor;
@@ -54,6 +66,7 @@ namespace GameLimon.Staging
 
         private void Awake()
         {
+            maleSpeech = new MaleDialoguePlayback(speechAudio);
             if (conversation != null)
             {
                 conversation.playAutomatically = false;
@@ -64,6 +77,9 @@ namespace GameLimon.Staging
                 conversationAudio.playOnAwake = false;
                 conversationAudio.Stop();
             }
+            if (stationAmbience != null)
+                normalAmbienceVolume = stationAmbience.volume;
+
             firstPerson.SetActive(false);
             joe.SetActive(false);
 
@@ -95,6 +111,16 @@ namespace GameLimon.Staging
             var playerLook = player.GetComponent<PlayerLook>();
             if (playerLook != null) playerLook.PoseLocked = false;
             ObjectiveUI.Instance?.Hide();
+        }
+
+        private void Update()
+        {
+            maleSpeech.UpdateVolume();
+            if (stationAmbience == null)
+                return;
+
+            float target = dialogueActive ? normalAmbienceVolume * DialogueAmbienceGain : normalAmbienceVolume;
+            stationAmbience.volume = Mathf.MoveTowards(stationAmbience.volume, target, Time.unscaledDeltaTime * .8f);
         }
 
         protected override void OnInteract(GameObject interactorObject)
@@ -157,13 +183,28 @@ namespace GameLimon.Staging
 
             conversation.wrapMode = WrapMode.ClampForever;
             conversation.Play();
-            if (conversationAudio != null) conversationAudio.Play();
-
             var state = conversation[conversation.clip.name];
-            if (state != null) state.wrapMode = WrapMode.ClampForever;
+            if (state != null)
+            {
+                state.wrapMode = WrapMode.ClampForever;
+                StartCoroutine(PlayPhoneSounds(state));
+            }
             yield return PlayConversationCaptions(state);
             if (completeSceneWhenFinished)
                 yield return FinishAndAdvance();
+        }
+
+        private IEnumerator PlayPhoneSounds(AnimationState state)
+        {
+            yield return WaitForClip(state, RingStart);
+            if (conversationAudio != null)
+                conversationAudio.Play();
+
+            yield return WaitForClip(state, HandsetPickup);
+            if (conversationAudio != null)
+                conversationAudio.Stop();
+            if (handsetAudio != null)
+                handsetAudio.Play();
         }
 
         private void DisableBakedCaptions()
@@ -188,6 +229,7 @@ namespace GameLimon.Staging
             }
 
             yield return WaitForClip(state, 3.22f);
+            dialogueActive = true;
             yield return SpeakUntil(state, "Джо: Привет, ГГ. Ты как?", 5.16f);
             yield return WaitForClip(state, 5.25f);
             yield return SpeakUntil(state, "ГГ: Привет Джо, все хорошо, кстати я пришел первым, с тебя пончики.", 10.43f);
@@ -241,6 +283,7 @@ namespace GameLimon.Staging
             yield return Speak("Рита: Они не били его, ГГ. Они смеялись. И он пошёл. Сам пошёл, понимаешь?");
             yield return Speak("ГГ: Я понял кто это и знаю где собираются... Запрись... На цепочку... Не открывай — даже если это я. Едем");
             StopCoroutine(hold);
+            dialogueActive = false;
             state.time = PhoneReturn;
             yield return WaitForClip(state, state.length);
         }
@@ -248,6 +291,7 @@ namespace GameLimon.Staging
         private IEnumerator SpeakUntil(AnimationState state, string text, float end)
         {
             float start = state.time;
+            PlaySpeech(text, (end - start) / Mathf.Max(.01f, state.speed * Time.timeScale));
             int shown = 0;
             while (state.time < end - .015f)
             {
@@ -262,8 +306,39 @@ namespace GameLimon.Staging
             captions.Hide();
         }
 
-        private IEnumerator Speak(string text, float hold = 2.5f) =>
-            captions.PlayText(text, 40f, hold, .13f);
+        private IEnumerator Speak(string text, float hold = 2.5f)
+        {
+            float voiceDuration = PlaySpeech(text, float.PositiveInfinity, text.Length / 40f + hold * .5f);
+            float reveal = Mathf.Max(.2f, text.Length / 40f);
+            hold = Mathf.Max(hold, 2f * (voiceDuration - reveal - .13f));
+            yield return captions.PlayText(text, 40f, hold, .13f);
+            while (maleSpeech.IsPlaying)
+                yield return null;
+        }
+
+        private float PlaySpeech(string text, float available, float ritaLimit = float.PositiveInfinity)
+        {
+            if (speechAudio == null || available <= 0f)
+                return 0f;
+
+            bool isRita = text.StartsWith("Рита:", System.StringComparison.Ordinal) && ritaSpeech != null;
+            if (!isRita)
+                return maleSpeech.Play(text, available);
+
+            maleSpeech.ReleaseVolume();
+
+            float offset = SpeechOffsets[ritaLine++ % SpeechOffsets.Length];
+            int prefix = text.IndexOf(':') + 1;
+            float duration = Mathf.Min(Mathf.Min(available, ritaLimit), Mathf.Max(.38f, (text.Length - prefix) / 27f));
+            double start = AudioSettings.dspTime + .025;
+            speechAudio.Stop();
+            speechAudio.clip = ritaSpeech;
+            speechAudio.loop = true;
+            speechAudio.timeSamples = Mathf.FloorToInt(ritaSpeech.samples * offset);
+            speechAudio.PlayScheduled(start);
+            speechAudio.SetScheduledEndTime(start + duration);
+            return 0f;
+        }
 
         private static IEnumerator WaitForClip(AnimationState state, float time)
         {

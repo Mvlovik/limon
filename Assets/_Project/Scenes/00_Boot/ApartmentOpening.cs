@@ -29,6 +29,12 @@ namespace GameLimon.Staging
             }
         }
 
+        public void PlayWindowFootstep(AudioClip step)
+        {
+            if (IsLookingAtWindow && step != null)
+                AudioSource.PlayClipAtPoint(step, openingCamera.transform.position - Vector3.up * 1.45f, 0.57f);
+        }
+
         private IEnumerator LookAtWindow()
         {
             var motor = player.GetComponent<PlayerMotor>();

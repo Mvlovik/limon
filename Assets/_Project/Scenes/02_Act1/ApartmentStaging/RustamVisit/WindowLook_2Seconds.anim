@@ -29994,4 +29994,53 @@ AnimationClip:
     flags: 0
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
-  m_Events: []
+  m_Events:
+  - time: 2.05
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: f000e277dfa25ca44a5fc4d817f5be31, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 2.37
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: 4d7f76ee8d09d98448c925ebb91951fe, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 2.8
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: 90ba568f9df79cc458805ea45508ba4e, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 3.14
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: a0e1fd55a94f6564fac5698362258588, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 3.53
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: 41accd82136c4d24088861b5544abb61, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 3.92
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: fe0065ac78b482b4fb7022a7ac1832e4, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 4.28
+    functionName: PlayWindowFootstep
+    data: 
+    objectReferenceParameter: {fileID: 8300000, guid: f000e277dfa25ca44a5fc4d817f5be31, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0

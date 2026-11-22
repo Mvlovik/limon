@@ -16,6 +16,8 @@ namespace GameLimon.Staging
         [SerializeField] private Transform doorway;
         [SerializeField] private GameObject rustam;
         [SerializeField] private AudioSource knocks;
+        [SerializeField] private AudioClip doorOpenSound;
+        [SerializeField] private AudioSource dialogueAudio;
         [SerializeField] private ThoughtSequence firstThought;
         [SerializeField] private ThoughtSequence conversation;
         [SerializeField] private FixedThirdPersonView fixedView;
@@ -25,6 +27,7 @@ namespace GameLimon.Staging
         [SerializeField] private float stopKnockingDistance = 1.8f;
         [SerializeField] private float doorOpenDuration = 0.9f;
 
+        private MaleDialoguePlayback dialoguePlayback;
         private GameObject player;
         private PlayerMotor motor;
         private PlayerLook look;
@@ -49,6 +52,7 @@ namespace GameLimon.Staging
 
         private void Awake()
         {
+            dialoguePlayback = new MaleDialoguePlayback(dialogueAudio);
             closedDoor = doorHinge.localRotation;
             rustam.SetActive(false);
             knocks.playOnAwake = false;
@@ -123,6 +127,7 @@ namespace GameLimon.Staging
 
         private void LateUpdate()
         {
+            dialoguePlayback.UpdateVolume();
             if (!rustam.activeInHierarchy || body == null) return;
             float breath = Mathf.Sin(Time.time * 1.85f);
             float elapsed = Time.time - lineStartedAt;
@@ -182,6 +187,8 @@ namespace GameLimon.Staging
             GameLimon.UI.ObjectiveUI.Instance?.Hide();
             lineStartedAt = Time.time;
             rustam.SetActive(true);
+            if (doorOpenSound != null)
+                AudioSource.PlayClipAtPoint(doorOpenSound, doorHinge.position, 0.75f);
             Quaternion cameraFrom = playerCamera.transform.rotation;
             Vector3 face = rustam.transform.position + Vector3.up * 1.66f;
             Quaternion cameraTo = Quaternion.LookRotation(face - playerCamera.transform.position);
@@ -203,15 +210,25 @@ namespace GameLimon.Staging
                 const string speaker = "Рустам:";
                 rustamSpeaking = line != null && line.Text != null &&
                     line.Text.StartsWith(speaker, System.StringComparison.Ordinal);
+                float speechDuration = dialoguePlayback.Play(line?.Text);
                 if (rustamSpeaking)
                 {
-                    mouthStartedAt = Time.unscaledTime + (line.Voice == null ? 0.18f : 0f);
-                    mouthDuration = line.Voice != null ? line.Voice.length :
-                        Mathf.Max(0.35f, (line.Text.Length - speaker.Length) / 23f);
+                    if (speechDuration > 0f)
+                    {
+                        mouthStartedAt = Time.unscaledTime;
+                        mouthDuration = speechDuration;
+                    }
+                    else
+                    {
+                        mouthStartedAt = Time.unscaledTime + (line.Voice == null ? 0.18f : 0f);
+                        mouthDuration = line.Voice != null ? line.Voice.length :
+                            Mathf.Max(0.35f, (line.Text.Length - speaker.Length) / 23f);
+                    }
                 }
                 var director = StoryDirector.Ensure();
                 director.PlayLine(line);
-                while (director.IsBusy) yield return null;
+                while (director.IsBusy || (dialogueAudio != null && dialogueAudio.isPlaying))
+                    yield return null;
                 rustamSpeaking = false;
             }
             yield return GameRoot.Instance.UI.FadeTo(1f, 0.55f);
@@ -265,6 +282,81 @@ namespace GameLimon.Staging
         {
             if (knocks != null) knocks.Stop();
             RestoreControl();
+        }
+    }
+
+    internal sealed class MaleDialoguePlayback
+    {
+        private const float StartDelay = .025f;
+        private readonly AudioSource source;
+        private readonly AudioClip recording;
+        private readonly float gain;
+        private double start, end;
+        private bool playing;
+
+        public MaleDialoguePlayback(AudioSource source)
+        {
+            this.source = source;
+            if (source != null)
+            {
+                recording = source.clip;
+                gain = source.volume;
+            }
+        }
+
+        public bool IsPlaying => playing && AudioSettings.dspTime < end;
+
+        public float Play(string line, float limit = float.PositiveInfinity)
+        {
+            if (source == null || recording == null || string.IsNullOrWhiteSpace(line) || limit <= StartDelay)
+                return 0f;
+
+            int prefix = line.IndexOf(':') + 1;
+            int characters = line.Substring(prefix).Trim().Length;
+            float duration = Mathf.Min(Mathf.Max(.4f, .12f + characters / 17f), limit - StartDelay);
+            duration = Mathf.Min(duration, recording.length * 1.85f);
+            bool shortLine = duration < recording.length * .82f;
+            float latestStart = shortLine ? recording.length - duration : recording.length * 2f - duration;
+            int latestSample = Mathf.Clamp(Mathf.FloorToInt(latestStart * recording.frequency), 0, Mathf.Max(0, recording.samples - Mathf.CeilToInt(.4f * recording.frequency)));
+
+            source.Stop();
+            source.clip = recording;
+            int sample = Random.Range(0, latestSample + 1);
+            source.timeSamples = sample;
+            source.loop = sample / (float)recording.frequency + duration > recording.length;
+            source.volume = 0f;
+            start = AudioSettings.dspTime + StartDelay;
+            end = start + duration;
+            playing = true;
+            source.PlayScheduled(start);
+            source.SetScheduledEndTime(end);
+            return StartDelay + duration;
+        }
+
+        public void UpdateVolume()
+        {
+            if (!playing)
+                return;
+
+            double now = AudioSettings.dspTime;
+            if (now >= end)
+            {
+                ReleaseVolume();
+                return;
+            }
+
+            float attack = Mathf.Clamp01((float)((now - start) / .032));
+            float release = Mathf.Clamp01((float)((end - now) / .13));
+            source.volume = gain * Mathf.Min(attack, release);
+        }
+
+        public void ReleaseVolume()
+        {
+            if (!playing)
+                return;
+
+            playing = false;
+            source.volume = gain;
         }
     }
 }
