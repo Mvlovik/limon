@@ -4,6 +4,7 @@ using GameLimon.Core;
 using GameLimon.Player;
 using GameLimon.UI;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace GameLimon.Story
 {
@@ -30,6 +31,7 @@ namespace GameLimon.Story
         [Tooltip("Optional legacy Animation to play. Leave empty for camera-only cutscenes.")]
         [SerializeField] private Animation legacyAnimation;
         [SerializeField] private AudioSource legacyAudio;
+        [SerializeField] private Canvas thoughtCaptionCanvas;
 
         [Header("Content")]
         [Tooltip("Optional thoughts/dialogue shown during the cutscene.")]
@@ -208,6 +210,15 @@ namespace GameLimon.Story
 
         private void PrepareCutscene()
         {
+            if (thoughtCaptionCanvas != null)
+            {
+                foreach (var label in thoughtCaptionCanvas.GetComponentsInChildren<Text>(true))
+                {
+                    ThoughtUI.StyleCaption(label);
+                    ThoughtUI.SetCaptionRect((RectTransform)label.transform.parent);
+                }
+            }
+
             if (_motor != null)
             {
                 _motor.ResetMomentum();

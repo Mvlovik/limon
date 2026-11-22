@@ -1,0 +1,4 @@
+iPod Classic by Timothy Ahene (https://sketchfab.com/timothyahene)
+Source: https://sketchfab.com/3d-models/ipod-classic-13dbe30b0e45408c8bfaddfe6a4e8786
+License: Creative Commons Attribution 4.0 International (https://creativecommons.org/licenses/by/4.0/)
+Adapted for Unity with transformed geometry, resized to handheld scale, and with Unity material settings.
