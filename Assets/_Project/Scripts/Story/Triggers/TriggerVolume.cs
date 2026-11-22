@@ -34,6 +34,9 @@ namespace GameLimon.Story
         [Tooltip("Скипать, если этот флаг уже стоит")]
         [SerializeField] private string skipIfFlag;
 
+        [Tooltip("Срабатывать только после установки этого флага (например, напарник дошёл до точки)")]
+        [SerializeField] private string requiredFlag;
+
         [Tooltip("Флаг, который ставится после срабатывания")]
         [SerializeField] private string completedFlag;
 
@@ -156,6 +159,9 @@ namespace GameLimon.Story
                 return false;
 
             GameState state = GameRoot.Instance != null ? GameRoot.Instance.State : null;
+
+            if (state != null && !string.IsNullOrEmpty(requiredFlag) && !state.GetFlag(requiredFlag))
+                return false;
 
             if (state != null && !string.IsNullOrEmpty(skipIfFlag) && state.GetFlag(skipIfFlag))
                 return true;

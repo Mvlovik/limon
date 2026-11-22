@@ -284,10 +284,16 @@ public static class BridgeCutsceneSetup
         AssetDatabase.Refresh();
 
         // Stage the real human models and apply the final camera/mark pass.
+        // These passes reopen the scene, so cache names/flags before they run
+        // (the old object references are destroyed by OpenScene).
+        bool triggerWired = triggerVolume != null;
+        string finaleName = finale != null ? finale.name : "null";
+
         BridgeCutsceneModelSetup.Apply();
         BridgeCutsceneStagingPolish.Apply();
+        BridgeCutsceneToyFinale.Apply();
 
-        Debug.Log($"[BridgeBuilder] done. Trigger wired: {triggerVolume != null}; finale={finale.name}");
+        Debug.Log($"[BridgeBuilder] done. Trigger wired: {triggerWired}; finale={finaleName}");
     }
 
     // ------------------------------------------------------------------ helpers
@@ -395,7 +401,10 @@ public static class BridgeCutsceneSetup
 
     static GameObject BuildBlood(Transform parent, string name, Vector3 pos, Vector3 scale, Material mat)
     {
-        GameObject go = Part(parent, name, PrimitiveType.Cylinder, pos, scale, Quaternion.identity, mat);
+        // Plane уже лежит в плоскости XZ (нормаль +Y) и показывает всю
+        // текстуру пятна, в отличие от цилиндра, который обрезает её в круг.
+        GameObject go = Part(parent, name, PrimitiveType.Plane, pos,
+            new Vector3(scale.x * 0.1f, 1f, scale.z * 0.1f), Quaternion.identity, mat);
         var renderer = go.GetComponent<Renderer>();
         if (renderer != null) renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         return go;

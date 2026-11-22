@@ -338,8 +338,13 @@ namespace GameLimon.Companions
             _velocity = Vector3.zero;
             _isFollowing = false;
 
+            // Встаём в позу точки, чтобы следующая катсцена/диалог не
+            // разворачивали NPC рывком.
             if (waypoint != null)
+            {
+                transform.rotation = waypoint.transform.rotation;
                 WaypointReached?.Invoke(waypoint);
+            }
         }
 
         private void ResolvePlayer(bool force)

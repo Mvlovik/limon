@@ -75,8 +75,16 @@ namespace GameLimon.Story
 
         public void Play()
         {
-            if (!IsPlaying)
-                StartCoroutine(PlayRoutine());
+            if (IsPlaying)
+                return;
+
+            // Cutscene objects often start disabled so their camera does not
+            // render during normal gameplay. A coroutine cannot start on an
+            // inactive GameObject, so enable it before starting the routine.
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+
+            StartCoroutine(PlayRoutine());
         }
 
         public IEnumerator PlayRoutine()

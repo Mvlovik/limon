@@ -82,7 +82,7 @@ namespace GameLimon.EditorTools
 
                 var blood = finaleProps.transform.Find("Blood_Finale");
                 if (blood != null)
-                    blood.localScale = new Vector3(0.55f, 0.004f, 0.38f);
+                    blood.localScale = new Vector3(0.068f, 1f, 0.048f);
 
                 // The reveal is intentionally dark; a point light here blooms
                 // against the near wall and hides the silent-film composition.

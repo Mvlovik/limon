@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using GameLimon.Companions;
 using GameLimon.Core;
 using GameLimon.Player;
@@ -33,6 +33,7 @@ namespace GameLimon.Story
         [SerializeField] private GameObject rustamStanding;
         [SerializeField] private GameObject thugAStanding;
         [SerializeField] private GameObject thugBStanding;
+        [SerializeField] private GameObject banditStanding;
         [SerializeField] private GameObject pistolInThugHand;
 
         [Header("Aftermath bodies")]
@@ -47,19 +48,46 @@ namespace GameLimon.Story
         [Header("Objects hidden for the duration")]
         [SerializeField] private GameObject[] hideDuringCutscene;
 
+        [Header("Dialogue")]
+        [SerializeField] private BridgeDialogueTalk talk;
+
+        [Header("Idle animations (before the shootout)")]
+        [SerializeField] private BridgeIdleActor[] idleActors;
+
         [Header("Audio")]
         [SerializeField] private AudioSource cutsceneAudio;
-        [SerializeField, Range(0f, 1f)] private float gunshotVolume = 0.9f;
-        [SerializeField, Range(0f, 1f)] private float ringingVolume = 0.35f;
+
+        [Header("Dialogue speech")]
+        [SerializeField] private AudioClip speechClip;
+        [SerializeField, Range(0f, 1f)] private float speechVolume = 0.32f;
+
+        [Header("Shootout and aftermath audio")]
+        [SerializeField] private AudioClip shootClip;
+        [SerializeField] private AudioClip ringingClip;
+        [SerializeField] private AudioClip heartbeatClip;
+        [SerializeField, Range(0f, 1f)] private float shootVolume = 0.9f;
+        [SerializeField, Range(0f, 1f)] private float ringingVolume = 0.4f;
+        [SerializeField, Range(0f, 1f)] private float heartbeatVolume = 0.7f;
+        [SerializeField, Min(1f)] private float shootoutDuration = 3.6f;
+        [SerializeField, Min(0f)] private float aftermathFadeIn = 1.8f;
+        [SerializeField, Min(0f)] private float aftermathFadeOut = 2.4f;
 
         private CutsceneOverlayUI _ui;
         private GameObject _player;
         private FirstPersonBody _playerBody;
         private GameObject _joe;
         private CompanionActor _joeCompanion;
-        private AudioClip _gunshot;
-        private AudioClip _ringing;
-        private AudioClip _running;
+        private AudioSource _shootSourceA;
+        private AudioSource _shootSourceB;
+        private AudioSource _shootSourceC;
+        private AudioSource _ringingSource;
+        private AudioSource _heartbeatSource;
+        private AudioSource _speechSource;
+        private Coroutine _speechRoutine;
+
+        private GameObject[] _fallActors;
+        private Vector3[] _fallPositions;
+        private Quaternion[] _fallRotations;
 
         private void Awake()
         {
@@ -98,10 +126,15 @@ namespace GameLimon.Story
 
                 StopLocomotion(_joe.transform);
 
+                // Joe приходит к JoeIntro своим ходом по маршруту.
+                // Позицию не телепортируем: последняя точка маршрута совпадает
+                // с JoeIntro, а поворот выставляем без изменения места.
                 if (joeIntroMark != null)
-                    _joe.transform.SetPositionAndRotation(joeIntroMark.position, joeIntroMark.rotation);
+                    _joe.transform.rotation = joeIntroMark.rotation;
             }
 
+            RestoreStandingPoses();
+            CaptureStandingPoses();
             SetStandingCast(true);
             SetAftermath(false, true);
             SetHiddenState(true);
@@ -123,6 +156,10 @@ namespace GameLimon.Story
 
             yield return PlayFinale();
 
+            // Ringing and heartbeat fade out during the final shot.
+            StartCoroutine(FadeLoop(_ringingSource, 0f, aftermathFadeOut));
+            yield return FadeLoop(_heartbeatSource, 0f, aftermathFadeOut);
+
             _ui.HideAll();
             _ui.DestroyOverlay();
             _ui = null;
@@ -137,16 +174,17 @@ namespace GameLimon.Story
 
         private IEnumerator PlayIntro()
         {
+            SetIdleActors(true);
             FocusCamera("CM_Shot_Approach");
             PlayTimeline(introDirector);
 
-            yield return _ui.PlayLine("Джо", "Тихо. Смотри туда.", 40f, 1.2f);
-            yield return _ui.PlayLine("Рустам", "Я вам все рассказал еще тогда! Оставьте меня в покое!", 45f, 0.9f);
-            yield return _ui.PlayLine("Бандит", "Не все, старик. Ты знаешь, кого мы ищем. Где он?", 45f, 0.9f);
+            yield return PlayTalkLine("Джо", "Тихо. Смотри туда.", 40f, 1.2f);
+            yield return PlayTalkLine("Рустам", "Я вам все рассказал еще тогда! Оставьте меня в покое!", 45f, 0.9f);
+            yield return PlayTalkLine("Бандит", "Не все, старик. Ты знаешь, кого мы ищем. Где он?", 45f, 0.9f);
 
             yield return WaitForTimeline(introDirector);
             FocusCamera("CM_Shot_Rustam");
-            yield return _ui.PlayLine("Джо", "Ждем. Узнаем, что им нужно.", 40f, 1.3f);
+            yield return PlayTalkLine("Джо", "Ждем. Узнаем, что им нужно.", 40f, 1.3f);
             Debug.Log("[BridgeCutscene] intro finished");
         }
 
@@ -154,43 +192,51 @@ namespace GameLimon.Story
         {
             FocusCamera("CM_Shot_Wait");
             PlayTimeline(branchADirector);
-            yield return _ui.PlayLine("Джо", "Спокойно. Пусть выговорятся.", 40f, 0.9f);
+            yield return PlayTalkLine("Джо", "Спокойно. Пусть выговорятся.", 40f, 0.9f);
             yield return new WaitForSecondsRealtime(2.2f);
-            yield return _ui.PlayLine("Бандит", "У меня нет времени. Говори, или я те колено прострелю!", 48f, 0.7f);
-            yield return _ui.PlayLine("Рустам", "Не-ет! Подожди! Я не знаю...", 42f, 0.5f);
-            yield return _ui.PlayLine("Джо", "Сейчас!", 40f, 0.3f);
-            yield return _ui.PlayLine("ГГ и Джо", "ПОЛИЦИЯ! БРОСАЙТЕ ОРУЖИЕ!", 65f, 0.3f);
+            yield return PlayTalkLine("Бандит", "У меня нет времени. Говори, или я те колено прострелю!", 48f, 0.7f);
+            yield return PlayTalkLine("Рустам", "Не-ет! Подожди! Я не знаю...", 42f, 0.5f);
+            yield return PlayTalkLine("ГГ и Джо", "ПОЛИЦИЯ! БРОСАЙТЕ ОРУЖИЕ!", 65f, 0.3f);
+            yield return PlayTalkLine("Джо", "Сейчас!", 40f, 0.3f);
 
             yield return GunfireAndFade();
             yield return PlayAftermath();
 
-            yield return _ui.PlayLine("Рустам", "Слушай... тумбочка... у кровати... там подарок от твоего отца... посмотри...", 42f, 1.4f);
-            yield return _ui.PlayLine("Джо", "ГГ! Сюда! Быстрее!", 40f, 1.0f);
+            yield return PlayTalkLine("Рустам", "Слушай... тумбочка... у кровати... там подарок от твоего отца... посмотри...", 42f, 1.4f);
+            yield return PlayTalkLine("Джо", "ГГ! Сюда! Быстрее!", 40f, 1.0f);
         }
 
         private IEnumerator GunfireAndFade()
         {
             Debug.Log("[BridgeCutscene] gunfire");
+            SetIdleActors(false);
             StopDirector(introDirector);
             StopDirector(branchADirector);
-            PlayGunshot();
-            yield return _ui.Flash(0.35f);
-            yield return new WaitForSecondsRealtime(0.35f);
 
             GameRoot root = GameRoot.Instance;
+
+            // Immediate blackout and gunfire instead of the white flash.
+            StartCoroutine(PlayShootout());
             if (root != null && root.UI != null)
-                yield return root.UI.FadeTo(1f, 0.55f);
+                yield return root.UI.FadeTo(1f, 0.3f);
+            else
+                yield return new WaitForSecondsRealtime(0.3f);
 
-            PlayRinging();
-            PlayRunning();
+            float shootoutEnd = Time.unscaledTime + Mathf.Max(1f, shootoutDuration);
+            while (Time.unscaledTime < shootoutEnd)
+                yield return null;
 
-            yield return new WaitForSecondsRealtime(2.0f);
+            // Ringing and heartbeat fade in and keep playing until the end of the scene.
+            StartCoroutine(FadeLoop(_ringingSource, ringingVolume, aftermathFadeIn));
+            StartCoroutine(FadeLoop(_heartbeatSource, heartbeatVolume, aftermathFadeIn));
 
-            SetStandingCast(false);
-            SetAftermath(true, true);
+            // The same characters lie down at the body marks while the screen is black.
+            LayDownAfterShot();
 
             if (pistolInThugHand != null)
                 pistolInThugHand.SetActive(false);
+
+            yield return new WaitForSecondsRealtime(0.5f);
 
             if (root != null && root.UI != null)
                 yield return root.UI.FadeTo(0f, 1.0f);
@@ -220,18 +266,19 @@ namespace GameLimon.Story
             if (_player != null && playerFinalMark != null)
                 _player.transform.SetPositionAndRotation(playerFinalMark.position, playerFinalMark.rotation);
 
-            if (_joe != null && playerFinalMark != null)
-            {
-                Vector3 behind = playerFinalMark.position - playerFinalMark.forward * 2.4f + playerFinalMark.right * 1.8f;
-                _joe.transform.SetPositionAndRotation(behind, Quaternion.LookRotation(-playerFinalMark.forward, Vector3.up));
-            }
+            // Joe остаётся у JoeIntro — в финальном кадре он за камерой.
+            // Раньше его переносили за спину ГГ, из-за чего в конце
+            // маршрута был заметный скачок.
 
             Debug.Log("[BridgeCutscene] finale");
             SetLightEnabled("RimLight_Warm", false);
             FocusCamera("CM_Shot_Finale");
             PlayTimeline(finaleDirector);
-            PlayRinging();
-            yield return WaitForTimeline(finaleDirector, 9.0f);
+            yield return WaitForTimeline(finaleDirector, 12.0f);
+
+            // Финальный кадр — игрушка. Удерживаем камеру последнего шота,
+            // иначе Cinemachine вернёт приоритеты к состоянию до Timeline.
+            FocusCamera("CM_Shot_Finale");
             yield return _ui.SetLetterbox(false, 0.6f);
         }
 
@@ -292,13 +339,301 @@ namespace GameLimon.Story
             // FocusCamera следующего шота камера на мгновение «прыгает» назад.
         }
 
+        private GameObject ResolveActor(GameObject assigned, string fallbackName)
+        {
+            if (assigned != null)
+                return assigned;
+
+            return FindObjectByName(fallbackName);
+        }
+
+        private GameObject ResolveBandit() => ResolveActor(banditStanding, "Modern Rebel Soldier Character");
+
+        private GameObject ResolveThugA() => ResolveActor(thugAStanding, "ThugA_Standing");
+
+        /// <summary>Запоминает исходные позы стоящих персонажей перед катсценой.</summary>
+        private void CaptureStandingPoses()
+        {
+            _fallActors = new[] { rustamStanding, ResolveThugA(), ResolveBandit() };
+            _fallPositions = new Vector3[_fallActors.Length];
+            _fallRotations = new Quaternion[_fallActors.Length];
+
+            for (int i = 0; i < _fallActors.Length; i++)
+            {
+                if (_fallActors[i] == null)
+                    continue;
+
+                _fallPositions[i] = _fallActors[i].transform.position;
+                _fallRotations[i] = _fallActors[i].transform.rotation;
+            }
+        }
+
+        /// <summary>Возвращает персонажей в исходную позу (при повторном запуске катсцены).</summary>
+        private void RestoreStandingPoses()
+        {
+            if (_fallActors == null || _fallPositions == null || _fallRotations == null)
+                return;
+
+            for (int i = 0; i < _fallActors.Length; i++)
+            {
+                if (_fallActors[i] == null)
+                    continue;
+
+                _fallActors[i].transform.SetPositionAndRotation(_fallPositions[i], _fallRotations[i]);
+            }
+        }
+
+        /// <summary>
+        /// После выстрела укладывает тех же персонажей на землю: берём точку и
+        /// поворот у соответствующих *_Body, затем прижимаем модель к поверхности.
+        /// </summary>
+        private void LayDownAfterShot()
+        {
+            LayDown(rustamStanding, rustamBody);
+            LayDown(ResolveThugA(), thugABody);
+            LayDown(ResolveBandit(), thugBBody);
+
+            SetAftermath(false, true);
+            PlaceBloodOnGround();
+        }
+
+        private static void LayDown(GameObject actor, GameObject bodyMark)
+        {
+            if (actor == null)
+                return;
+
+            actor.SetActive(true);
+            if (bodyMark == null)
+                return;
+
+            Transform tr = actor.transform;
+
+            // Маркеры тел повёрнуты «лицом вниз» (X = 90). Для трупа нужен
+            // поворот «лицом вверх» (X = -90), иначе руки в A-позе уходят
+            // под землю, а торс висит в воздухе.
+            float yaw = bodyMark.transform.eulerAngles.y;
+            tr.SetPositionAndRotation(bodyMark.transform.position, Quaternion.Euler(-90f, yaw, 0f));
+
+            if (!TryGetGround(tr.position, out Vector3 groundPoint, out _))
+                return;
+
+            // У разных FBX разные пивоты (у части моделей — ступни, у части —
+            // бёдра). Выравниваем по кости бёдер: её центр должен оказаться
+            // примерно на половине толщины тела над землёй.
+            Transform hips = FindHips(actor);
+            if (hips == null)
+                return;
+
+            tr.position += Vector3.up * (groundPoint.y + 0.17f - hips.position.y);
+        }
+
+        private static Transform FindHips(GameObject actor)
+        {
+            foreach (Transform part in actor.GetComponentsInChildren<Transform>(true))
+                if (part.name == "mixamorig:Hips")
+                    return part;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Включает пятна крови и укладывает их на землю: позиция — верхняя поверхность
+        /// под точкой, поворот — по нормали (с случайным поворотом вокруг нормали).
+        /// </summary>
+        private void PlaceBloodOnGround()
+        {
+            if (aftermathBlood == null)
+                return;
+
+            foreach (GameObject target in aftermathBlood)
+            {
+                if (target == null)
+                    continue;
+
+                Transform mark = target.transform;
+                target.SetActive(true);
+
+                if (!TryGetGround(mark.position, out Vector3 groundPoint, out Vector3 normal))
+                    continue;
+
+                // Пятно — плоская Plane-декаль с нормалью +Y. Поворачиваем
+                // только вокруг нормали, чтобы не поставить её на ребро.
+                mark.SetPositionAndRotation(
+                    groundPoint + normal * 0.02f,
+                    Quaternion.FromToRotation(Vector3.up, normal)
+                    * Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+            }
+        }
+
+        /// <summary>
+        /// Ищет поверхность пола под точкой (коллайдеры, затем террейн).
+        /// Луч стартует чуть выше маркера и игнорирует геометрию над ним
+        /// (например, коллайдер моста), иначе тела и кровь «улетают» наверх.
+        /// </summary>
+        private static bool TryGetGround(Vector3 worldPosition, out Vector3 point, out Vector3 normal)
+        {
+            point = worldPosition;
+            normal = Vector3.up;
+            bool found = false;
+            float bestY = float.NegativeInfinity;
+
+            // Маркеры тел/крови стоят на 2–50 см выше пола. Всё, что выше
+            // этого допуска, — потолок/мост/декор над персонажем.
+            float maxFloorY = worldPosition.y + 0.35f;
+
+            RaycastHit[] hits = Physics.RaycastAll(
+                worldPosition + Vector3.up * 2f, Vector3.down, 40f, ~0, QueryTriggerInteraction.Ignore);
+
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.collider == null || hit.point.y > maxFloorY)
+                    continue;
+
+                if (hit.point.y > bestY)
+                {
+                    bestY = hit.point.y;
+                    point = hit.point;
+                    normal = hit.normal.sqrMagnitude > 0.0001f ? hit.normal : Vector3.up;
+                    found = true;
+                }
+            }
+
+            Terrain terrain = Terrain.activeTerrain;
+            if (terrain != null)
+            {
+                float y = terrain.SampleHeight(worldPosition) + terrain.transform.position.y;
+                if (y <= maxFloorY && (!found || y > bestY))
+                {
+                    point = new Vector3(worldPosition.x, y, worldPosition.z);
+                    normal = Vector3.up;
+                    found = true;
+                }
+            }
+
+            return found;
+        }
+
         private void SetStandingCast(bool active)
         {
             if (rustamStanding != null) rustamStanding.SetActive(active);
             if (thugAStanding != null) thugAStanding.SetActive(active);
             if (thugBStanding != null) thugBStanding.SetActive(active);
+
+            // В сцене третий бандит лежит отдельным объектом с именем
+            // "Modern Rebel Soldier Character"; ссылка может быть не задана.
+            GameObject bandit = ResolveBandit();
+            if (bandit != null) bandit.SetActive(active);
+
             if (pistolInThugHand != null) pistolInThugHand.SetActive(active);
         }
+
+        private void SetIdleActors(bool active)
+        {
+            if (idleActors == null)
+                return;
+
+            foreach (BridgeIdleActor idle in idleActors)
+            {
+                if (idle == null)
+                    continue;
+
+                if (active)
+                    idle.Play();
+                else
+                    idle.Stop();
+            }
+        }
+
+        private IEnumerator PlayTalkLine(string speaker, string text, float speed, float hold)
+        {
+            float lineDuration = EstimateLineDuration(text, speed, hold);
+
+            if (talk != null)
+                talk.Speak(speaker, lineDuration);
+
+            PlaySpeech(speaker, lineDuration);
+
+            yield return _ui.PlayLine(speaker, text, speed, hold);
+
+            if (talk != null)
+                talk.Silence();
+        }
+
+        private void PlaySpeech(string speaker, float duration)
+        {
+            if (_speechSource == null || _speechSource.clip == null)
+                return;
+
+            StopSpeech();
+            _speechRoutine = StartCoroutine(SpeechRoutine(speaker, duration));
+        }
+
+        private IEnumerator SpeechRoutine(string speaker, float duration)
+        {
+            _speechSource.pitch = SpeechPitch(speaker);
+            float length = _speechSource.clip.length;
+            _speechSource.time = Random.Range(0f, Mathf.Max(0.01f, length - 0.05f));
+            _speechSource.volume = 0f;
+            _speechSource.Play();
+
+            const float fadeIn = 0.15f;
+            const float fadeOut = 0.25f;
+            float holdEnd = Mathf.Max(fadeIn, duration - fadeOut);
+
+            for (float t = 0f; t < fadeIn; t += Time.unscaledDeltaTime)
+            {
+                _speechSource.volume = Mathf.Lerp(0f, speechVolume, t / fadeIn);
+                yield return null;
+            }
+
+            _speechSource.volume = speechVolume;
+
+            float elapsed = fadeIn;
+            while (elapsed < holdEnd)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            for (float t = 0f; t < fadeOut; t += Time.unscaledDeltaTime)
+            {
+                _speechSource.volume = Mathf.Lerp(speechVolume, 0f, t / fadeOut);
+                yield return null;
+            }
+
+            _speechSource.volume = 0f;
+            _speechSource.Stop();
+            _speechRoutine = null;
+        }
+
+        private void StopSpeech()
+        {
+            if (_speechRoutine != null)
+            {
+                StopCoroutine(_speechRoutine);
+                _speechRoutine = null;
+            }
+
+            if (_speechSource != null)
+            {
+                _speechSource.Stop();
+                _speechSource.volume = 0f;
+            }
+        }
+
+        private static float SpeechPitch(string speaker)
+        {
+            switch (speaker)
+            {
+                case "\u0420\u0443\u0441\u0442\u0430\u043c": return 0.82f;
+                case "\u0411\u0430\u043d\u0434\u0438\u0442": return 1.14f;
+                case "\u0413\u0413 \u0438 \u0414\u0436\u043e": return 1.06f;
+                default: return 1f;
+            }
+        }
+
+        private static float EstimateLineDuration(string text, float speed, float hold) =>
+            Mathf.Max(0.4f, text.Length / Mathf.Max(1f, speed)) + hold;
 
         private void SetAftermath(bool active, bool includeThugs)
         {
@@ -338,6 +673,10 @@ namespace GameLimon.Story
 
         private void OnDisable()
         {
+            SetIdleActors(false);
+            StopAftermathAudio();
+            StopSpeech();
+
             if (_ui != null)
                 _ui.HideAll();
         }
@@ -355,92 +694,96 @@ namespace GameLimon.Story
             cutsceneAudio.spatialBlend = 0f;
             cutsceneAudio.volume = 1f;
 
-            if (_gunshot == null) _gunshot = BuildGunshot();
-            if (_ringing == null) _ringing = BuildRinging();
-            if (_running == null) _running = BuildRunning();
+            if (_shootSourceA == null) _shootSourceA = CreateAudioSource("ShootA", 0.93f, false, null, 1f);
+            if (_shootSourceB == null) _shootSourceB = CreateAudioSource("ShootB", 1f, false, null, 1f);
+            if (_shootSourceC == null) _shootSourceC = CreateAudioSource("ShootC", 1.07f, false, null, 1f);
+            if (_ringingSource == null) _ringingSource = CreateAudioSource("EarRinging", 1f, true, ringingClip, 0f);
+            if (_heartbeatSource == null) _heartbeatSource = CreateAudioSource("Heartbeat", 1f, true, heartbeatClip, 0f);
+            if (_speechSource == null) _speechSource = CreateAudioSource("DialogueSpeech", 1f, true, speechClip, 0f);
         }
 
-        private void PlayGunshot()
+        private AudioSource CreateAudioSource(string name, float pitch, bool loop, AudioClip clip, float volume)
         {
-            if (cutsceneAudio == null || _gunshot == null) return;
-            cutsceneAudio.PlayOneShot(_gunshot, gunshotVolume);
+            var host = new GameObject(name);
+            host.transform.SetParent(transform, false);
+
+            var source = host.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = loop;
+            source.spatialBlend = 0f;
+            source.pitch = pitch;
+            source.clip = clip;
+            source.volume = volume;
+            return source;
         }
 
-        private void PlayRinging()
+        private IEnumerator PlayShootout()
         {
-            if (cutsceneAudio == null || _ringing == null) return;
-            cutsceneAudio.PlayOneShot(_ringing, ringingVolume);
-        }
+            float end = Time.unscaledTime + Mathf.Max(1f, shootoutDuration);
+            int shot = 0;
 
-        private void PlayRunning()
-        {
-            if (cutsceneAudio == null || _running == null) return;
-            cutsceneAudio.PlayOneShot(_running, 0.5f);
-        }
-
-        private static AudioClip BuildGunshot()
-        {
-            const int rate = 44100;
-            const float duration = 0.38f;
-            int count = Mathf.CeilToInt(rate * duration);
-            float[] samples = new float[count];
-            var rng = new System.Random(1701);
-
-            for (int i = 0; i < count; i++)
+            while (Time.unscaledTime < end)
             {
-                float t = (float)i / rate;
-                float decay = Mathf.Exp(-t * 13f);
-                float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
-                float crack = Mathf.Sin(2f * Mathf.PI * (90f - 40f * t) * t);
-                samples[i] = Mathf.Clamp((noise * 0.9f + crack * 0.6f) * decay, -1f, 1f);
+                PlayShoot(shot++);
+                yield return new WaitForSecondsRealtime(Random.Range(0.07f, 0.26f));
+            }
+        }
+
+        private void PlayShoot(int index)
+        {
+            AudioSource source;
+            if (index % 3 == 0) source = _shootSourceA;
+            else if (index % 3 == 1) source = _shootSourceB;
+            else source = _shootSourceC;
+
+            if (source == null || shootClip == null)
+                return;
+
+            source.PlayOneShot(shootClip, shootVolume * Random.Range(0.7f, 1f));
+        }
+
+        private static IEnumerator FadeLoop(AudioSource source, float target, float duration)
+        {
+            if (source == null)
+                yield break;
+
+            if (target > 0.001f && !source.isPlaying && source.clip != null)
+                source.Play();
+
+            float start = source.volume;
+
+            if (duration <= 0f)
+            {
+                source.volume = target;
+            }
+            else
+            {
+                for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+                {
+                    source.volume = Mathf.Lerp(start, target, t / duration);
+                    yield return null;
+                }
+
+                source.volume = target;
             }
 
-            var clip = AudioClip.Create("SFX_CutsceneGunshot_Placeholder", count, 1, rate, false);
-            clip.SetData(samples, 0);
-            return clip;
+            if (target <= 0.001f)
+                source.Stop();
         }
 
-        private static AudioClip BuildRinging()
+        private void StopAftermathAudio()
         {
-            const int rate = 44100;
-            const float duration = 3.8f;
-            int count = Mathf.CeilToInt(rate * duration);
-            float[] samples = new float[count];
-
-            for (int i = 0; i < count; i++)
+            if (_ringingSource != null)
             {
-                float t = (float)i / rate;
-                float envelope = Mathf.Clamp01(t * 4f) * Mathf.Clamp01((duration - t) / 1.2f);
-                float tone = Mathf.Sin(2f * Mathf.PI * 3900f * t) * 0.5f
-                             + Mathf.Sin(2f * Mathf.PI * 4400f * t) * 0.25f;
-                samples[i] = tone * envelope * 0.35f;
+                _ringingSource.Stop();
+                _ringingSource.volume = 0f;
             }
 
-            var clip = AudioClip.Create("SFX_CutsceneRinging_Placeholder", count, 1, rate, false);
-            clip.SetData(samples, 0);
-            return clip;
-        }
-
-        private static AudioClip BuildRunning()
-        {
-            const int rate = 44100;
-            const float duration = 1.6f;
-            int count = Mathf.CeilToInt(rate * duration);
-            float[] samples = new float[count];
-            var rng = new System.Random(9021);
-
-            for (int i = 0; i < count; i++)
+            if (_heartbeatSource != null)
             {
-                float t = (float)i / rate;
-                float step = Mathf.Repeat(t * 4.5f, 1f);
-                float envelope = Mathf.Exp(-step * 7f);
-                float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
-                samples[i] = noise * envelope * 0.4f;
+                _heartbeatSource.Stop();
+                _heartbeatSource.volume = 0f;
             }
-
-            var clip = AudioClip.Create("SFX_CutsceneRunning_Placeholder", count, 1, rate, false);
-            clip.SetData(samples, 0);
-            return clip;
         }
 
         private static void StopLocomotion(Transform root)
