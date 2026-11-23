@@ -27,13 +27,35 @@ namespace GameLimon.Player
         private float _airTime;
         private Animator _externalAnimator;
         private Renderer[] _hiddenRenderers;
+        private bool _externalView;
+        private int _cutsceneHides;
 
         public RuntimeAnimatorController LocomotionController => animator != null ? animator.runtimeAnimatorController : null;
 
         public void SetExternalView(bool active, Animator externalAnimator = null)
         {
             _externalAnimator = active ? externalAnimator : null;
-            if (active && _hiddenRenderers == null)
+            _externalView = active;
+            UpdateBodyVisibility();
+        }
+
+        internal void HideForCutscene()
+        {
+            _cutsceneHides++;
+            UpdateBodyVisibility();
+        }
+
+        internal void RestoreAfterCutscene()
+        {
+            if (_cutsceneHides == 0) return;
+            _cutsceneHides--;
+            UpdateBodyVisibility();
+        }
+
+        private void UpdateBodyVisibility()
+        {
+            bool hideBody = _externalView || _cutsceneHides > 0;
+            if (hideBody && _hiddenRenderers == null)
             {
                 var hidden = new System.Collections.Generic.List<Renderer>();
                 foreach (var renderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -44,7 +66,7 @@ namespace GameLimon.Player
                 }
                 _hiddenRenderers = hidden.ToArray();
             }
-            else if (!active && _hiddenRenderers != null)
+            else if (!hideBody && _hiddenRenderers != null)
             {
                 foreach (var renderer in _hiddenRenderers)
                     if (renderer != null) renderer.forceRenderingOff = false;

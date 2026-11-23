@@ -26,6 +26,8 @@ namespace GameLimon.Story
         [Header("Scene objects")]
         [Tooltip("Objects enabled only while the cutscene is playing (body, characters, props).")]
         [SerializeField] private GameObject[] enableDuringCutscene;
+        [Tooltip("Hide the gameplay body while the cutscene camera is active.")]
+        [SerializeField] private bool hidePlayerBody;
 
         [Header("Optional legacy animation")]
         [Tooltip("Optional legacy Animation to play. Leave empty for camera-only cutscenes.")]
@@ -51,6 +53,7 @@ namespace GameLimon.Story
         private PlayerMotor _motor;
         private PlayerLook _look;
         private PlayerInteractor _interactor;
+        private FirstPersonBody _hiddenPlayerBody;
         private readonly List<Camera> _playerCameras = new List<Camera>();
         private readonly List<AudioListener> _playerListeners = new List<AudioListener>();
         private readonly List<bool> _cameraStates = new List<bool>();
@@ -173,6 +176,11 @@ namespace GameLimon.Story
                 _motor = player.GetComponent<PlayerMotor>();
                 _look = player.GetComponent<PlayerLook>();
                 _interactor = player.GetComponent<PlayerInteractor>();
+                if (hidePlayerBody && _hiddenPlayerBody == null)
+                {
+                    _hiddenPlayerBody = player.GetComponentInChildren<FirstPersonBody>(true);
+                    _hiddenPlayerBody?.HideForCutscene();
+                }
 
                 foreach (Camera camera in player.GetComponentsInChildren<Camera>(true))
                 {
@@ -276,6 +284,8 @@ namespace GameLimon.Story
             for (int i = 0; i < _enabledObjects.Count; i++)
                 if (_enabledObjects[i] != null) _enabledObjects[i].SetActive(_objectStates[i]);
 
+            RestorePlayerBody();
+
             if (_interactor != null)
                 _interactor.enabled = _interactorWasEnabled;
 
@@ -298,6 +308,13 @@ namespace GameLimon.Story
             _captured = false;
         }
 
+        private void RestorePlayerBody()
+        {
+            if (_hiddenPlayerBody != null)
+                _hiddenPlayerBody.RestoreAfterCutscene();
+            _hiddenPlayerBody = null;
+        }
+
         private void OnDisable()
         {
             if (IsPlaying)
@@ -305,6 +322,10 @@ namespace GameLimon.Story
                 StopAllCoroutines();
                 RestorePlayerState();
                 IsPlaying = false;
+            }
+            else
+            {
+                RestorePlayerBody();
             }
         }
     }
