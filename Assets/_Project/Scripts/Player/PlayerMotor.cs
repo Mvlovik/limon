@@ -30,7 +30,7 @@ namespace GameLimon.Player
         [SerializeField] private float crouchTransition = 10f;
 
         [Tooltip("Высота глаз стоя (локальная Y камеры).")]
-        [SerializeField] private float standEyeHeight = 1.62f;
+        [SerializeField] private float standEyeHeight = 0f;
 
         [Tooltip("Высота глаз в приседе")]
         [SerializeField] private float crouchEyeHeight = 1.05f;

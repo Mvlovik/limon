@@ -136,8 +136,8 @@ namespace GameLimon.UI
             rect.anchorMin = new Vector2(1f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(1f, 1f);
-            rect.sizeDelta = new Vector2(560f, 132f);
-            rect.anchoredPosition = new Vector2(-28f, -28f);
+            rect.sizeDelta = new Vector2(470f, 108f);
+            rect.anchoredPosition = new Vector2(-20f, -20f);
 
             CanvasGroup group = host.AddComponent<CanvasGroup>();
             group.alpha = 0f;
@@ -145,7 +145,7 @@ namespace GameLimon.UI
             group.interactable = false;
 
             Image background = host.AddComponent<Image>();
-            background.color = new Color(0.05f, 0.06f, 0.08f, 0.78f);
+            background.color = new Color(0.05f, 0.06f, 0.08f, 0.42f);
             background.raycastTarget = false;
 
             // Тонкая акцентная полоса слева.
@@ -155,10 +155,10 @@ namespace GameLimon.UI
             accentRect.anchorMin = new Vector2(0f, 0f);
             accentRect.anchorMax = new Vector2(0f, 1f);
             accentRect.pivot = new Vector2(0f, 0.5f);
-            accentRect.sizeDelta = new Vector2(6f, 0f);
+            accentRect.sizeDelta = new Vector2(4f, 0f);
             accentRect.anchoredPosition = Vector2.zero;
             Image accent = accentObject.AddComponent<Image>();
-            accent.color = new Color(1f, 0.76f, 0.3f, 1f);
+            accent.color = new Color(1f, 0.76f, 0.3f, 0.55f);
             accent.raycastTarget = false;
 
             // Иконка-метка.
@@ -168,8 +168,8 @@ namespace GameLimon.UI
             iconRect.anchorMin = new Vector2(0f, 0.5f);
             iconRect.anchorMax = new Vector2(0f, 0.5f);
             iconRect.pivot = new Vector2(0f, 0.5f);
-            iconRect.sizeDelta = new Vector2(72f, 72f);
-            iconRect.anchoredPosition = new Vector2(24f, 0f);
+            iconRect.sizeDelta = new Vector2(54f, 54f);
+            iconRect.anchoredPosition = new Vector2(18f, 0f);
 
             Image icon = iconObject.AddComponent<Image>();
             icon.preserveAspect = true;
@@ -182,15 +182,15 @@ namespace GameLimon.UI
             titleRect.anchorMin = new Vector2(0f, 1f);
             titleRect.anchorMax = new Vector2(1f, 1f);
             titleRect.pivot = new Vector2(0f, 1f);
-            titleRect.offsetMin = new Vector2(116f, -38f);
-            titleRect.offsetMax = new Vector2(-20f, -12f);
+            titleRect.offsetMin = new Vector2(92f, -34f);
+            titleRect.offsetMax = new Vector2(-16f, -10f);
 
             Text title = titleObject.AddComponent<Text>();
             title.font = Resources.GetBuiltinResource<Font>(FontResource);
-            title.fontSize = 16;
+            title.fontSize = 14;
             title.fontStyle = FontStyle.Bold;
             title.alignment = TextAnchor.MiddleLeft;
-            title.color = new Color(1f, 0.76f, 0.3f, 1f);
+            title.color = new Color(1f, 0.76f, 0.3f, 0.72f);
             title.text = "ЗАДАНИЕ";
             title.raycastTarget = false;
 
@@ -200,20 +200,20 @@ namespace GameLimon.UI
             var labelRect = (RectTransform)labelObject.transform;
             labelRect.anchorMin = new Vector2(0f, 0f);
             labelRect.anchorMax = new Vector2(1f, 1f);
-            labelRect.offsetMin = new Vector2(116f, 14f);
-            labelRect.offsetMax = new Vector2(-20f, -40f);
+            labelRect.offsetMin = new Vector2(92f, 12f);
+            labelRect.offsetMax = new Vector2(-16f, -36f);
 
             Text label = labelObject.AddComponent<Text>();
             label.font = Resources.GetBuiltinResource<Font>(FontResource);
-            label.fontSize = 26;
+            label.fontSize = 22;
             label.alignment = TextAnchor.UpperLeft;
-            label.color = new Color(0.95f, 0.93f, 0.88f, 1f);
+            label.color = new Color(0.9f, 0.88f, 0.84f, 0.92f);
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Truncate;
             label.raycastTarget = false;
 
             var shadow = labelObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.7f);
             shadow.effectDistance = new Vector2(1.5f, -1.5f);
 
             var panel = host.AddComponent<ObjectiveUI>();

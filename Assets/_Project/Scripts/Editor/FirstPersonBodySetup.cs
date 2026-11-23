@@ -15,7 +15,7 @@ namespace GameLimon.EditorTools
     /// </summary>
     public static class FirstPersonBodySetup
     {
-        private const string GgPolicePath = "Assets/_Project/Art/cheliki/Models/GG_POLICE.fbx";
+        private const string GgPolicePath = "Assets/_Project/Art/Characters/GG/GG_POLICE.fbx";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/PF_Player.prefab";
 
         private const string PackSource = "Assets/VanillaLoopStudio";
@@ -24,8 +24,8 @@ namespace GameLimon.EditorTools
 
         private const string ControllerPath = "Assets/_Project/Art/Animations/Player/PlayerBody.controller";
         private const string BodyMeshPath = "Assets/_Project/Art/Animations/Player/GG_POLICE_FirstPerson.asset";
-        private const string MaterialFolder = "Assets/_Project/Art/cheliki/Materials";
-        private const string TexturePath = "Assets/_Project/Art/cheliki/Textures/4532.png";
+        private const string MaterialFolder = "Assets/_Project/Art/Characters/Materials";
+        private const string TexturePath = "Assets/_Project/Art/Characters/Textures/4532.png";
         private const string MaterialPath = MaterialFolder + "/MAT_GG_POLICE.mat";
 
         private const string IdlePoseFbx = PackRoot +

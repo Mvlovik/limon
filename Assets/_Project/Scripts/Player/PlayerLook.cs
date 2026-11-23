@@ -52,11 +52,13 @@ namespace GameLimon.Player
         private InputReader _input;
         private PlayerMotor _motor;
         private Camera _camera;
+        private FirstPersonBody[] _bodies;
 
         private float _pitch;
         private float _bobPhase;
         private float _bobWeight;
         private float _smoothedEyeHeight;
+        private float _bodyForwardOffset;
 
         /// <summary>
         /// Поза камеры под внешним управлением (катсцены, пробуждение на кровати):
@@ -78,6 +80,8 @@ namespace GameLimon.Player
                 _smoothedEyeHeight = cameraTransform.localPosition.y;
 
             ResolveInput();
+
+            _bodies = GetComponentsInChildren<FirstPersonBody>(true);
 
             if (lockCursorOnStart)
                 LockCursor(true);
@@ -166,7 +170,29 @@ namespace GameLimon.Player
                 targetEyeHeight,
                 1f - Mathf.Exp(-eyeSmoothing * Time.deltaTime));
 
-            cameraTransform.localPosition = new Vector3(horizontal, _smoothedEyeHeight + vertical, 0f);
+            ResolveBodyForwardOffset();
+
+            // Z камеры — сдвиг вперёд от оси позвоночника: у некоторых тел
+            // (например, GG_KURTKA_SH) грудь иначе занимает пол экрана при взгляде вниз.
+            cameraTransform.localPosition = new Vector3(horizontal, _smoothedEyeHeight + vertical, _bodyForwardOffset);
+        }
+
+        /// <summary>Сдвиг камеры вперёд берём у активного тела игрока.</summary>
+        private void ResolveBodyForwardOffset()
+        {
+            if (_bodies == null || _bodies.Length == 0)
+                return;
+
+            foreach (FirstPersonBody body in _bodies)
+            {
+                if (body != null && body.isActiveAndEnabled)
+                {
+                    _bodyForwardOffset = body.CameraForwardOffset;
+                    return;
+                }
+            }
+
+            _bodyForwardOffset = 0f;
         }
 
         /// <summary>Захват курсора</summary>

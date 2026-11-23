@@ -8,17 +8,16 @@ namespace GameLimon.EditorTools
 {
     /// <summary>
     /// Replaces the scene-4 blockout actors with the rigged human models from
-    /// Assets/_Project/Art/chelikiуу. The models are posed once from GG_Idle so
+    /// Assets/_Project/Art/Characters. The models are posed once from GG_Idle so
     /// the cutscene has believable standing/hostage silhouettes without adding
     /// another animator controller to every extra.
     /// </summary>
     public static class BridgeCutsceneModelSetup
     {
         const string ScenePath = "Assets/_Project/Scenes/02_Act1/A1_S04_UnderBridge.unity";
-        const string ModelRoot = "Assets/_Project/Art/chelikiуу/Models/";
-        const string RustamModel = ModelRoot + "RUSTEM.fbx";
-        const string ThugAModel = ModelRoot + "DJO_KURTKA.fbx";
-        const string ThugBModel = ModelRoot + "GG_KURTKA_SH.fbx";
+        const string RustamModel = "Assets/_Project/Art/Characters/RUSTEM/RUSTEM.fbx";
+        const string ThugAModel = "Assets/_Project/Art/Characters/DJO/DJO_KURTKA2/idle.fbx";
+        const string ThugBModel = "Assets/_Project/Art/Characters/GG/GG_KURTKA_SH.fbx";
         const string IdleClipPath = "Assets/_Project/Art/Animations/GG/GG_Idle.anim";
         const string IdleControllerPath = "Assets/_Project/Art/Animations/GG/GG.controller";
 
@@ -105,7 +104,7 @@ namespace GameLimon.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("[BridgeModels] cast replaced with chelikiуу models");
+            Debug.Log("[BridgeModels] cast replaced with Characters models");
         }
 
         static GameObject SpawnModel(string name, string assetPath, Transform parent, Vector3 position, Quaternion rotation, bool body, bool keepAnimator = false)

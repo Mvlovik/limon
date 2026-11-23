@@ -47,6 +47,11 @@ namespace GameLimon.MainMenu
 
         private void Awake()
         {
+            // Меню должно быть кликабельным при любом пути входа (из Boot,
+            // билда или напрямую): захват курсора игроком переживает смену сцены.
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             BuildSceneCards();
             RefreshState();
             StartCoroutine(LoadBackgroundRoutine());

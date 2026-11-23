@@ -104,14 +104,16 @@ namespace GameLimon.Story
             _player = GameObject.FindGameObjectWithTag(PlayerTag);
             if (_player != null)
             {
-                _playerBody = _player.GetComponentInChildren<FirstPersonBody>(true);
+                _playerBody = _player.GetComponentInChildren<FirstPersonBody>();
                 if (_playerBody != null)
                     _playerBody.enabled = false;
 
                 // FirstPersonBody normally hides the head for the FPS view. The
-                // cutscene needs the real head for the final close-up.
-                RestoreHeadScale(_player.transform);
-                StopLocomotion(_player.transform);
+                // cutscene needs the real head for the final close-up. Only the
+                // active body variant matters — other bodies stay disabled.
+                Transform body = _playerBody != null ? _playerBody.transform : _player.transform;
+                RestoreHeadScale(body);
+                StopLocomotion(body);
 
                 if (playerIntroMark != null)
                     _player.transform.SetPositionAndRotation(playerIntroMark.position, playerIntroMark.rotation);
@@ -796,13 +798,15 @@ namespace GameLimon.Story
 
         private static void RestoreHeadScale(Transform player)
         {
+            // FirstPersonBody скрывает и голову, и шею — для катсцены
+            // возвращаем обе кости, иначе в крупном плане не будет головы.
             Transform[] all = player.GetComponentsInChildren<Transform>(true);
             foreach (Transform candidate in all)
             {
-                if (candidate.name == "mixamorig:Head" || candidate.name.EndsWith(":Head"))
+                if (candidate.name == "mixamorig:Head" || candidate.name.EndsWith(":Head") ||
+                    candidate.name == "mixamorig:Neck" || candidate.name.EndsWith(":Neck"))
                 {
                     candidate.localScale = Vector3.one;
-                    return;
                 }
             }
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using GameLimon.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -139,11 +140,13 @@ namespace GameLimon.Story
             groupObject.transform.SetParent(parent, false);
 
             var rect = (RectTransform)groupObject.transform;
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.sizeDelta = new Vector2(1500f, 190f);
-            rect.anchoredPosition = new Vector2(0f, 170f);
+            // Процентные якоря: панель всегда внутри экрана при любом разрешении
+            // и соотношении сторон, и всегда выше нижнего letterbox-бара (120/1080 ≈ 11%).
+            rect.anchorMin = new Vector2(0.08f, 0.14f);
+            rect.anchorMax = new Vector2(0.92f, 0.34f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(0f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 0f);
 
             _subtitleGroup = groupObject.AddComponent<CanvasGroup>();
             _subtitleGroup.alpha = 0f;
@@ -169,6 +172,15 @@ namespace GameLimon.Story
             var shadow = _subtitleText.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.9f);
             shadow.effectDistance = new Vector2(2f, -2f);
+
+            // Шрифт следует за высотой канваса — субтитры читаемы на любом разрешении.
+            var speakerFitter = _subtitleSpeaker.GetComponent<CaptionTextFitter>();
+            if (speakerFitter == null) speakerFitter = _subtitleSpeaker.gameObject.AddComponent<CaptionTextFitter>();
+            speakerFitter.Setup(24, 12, 56);
+
+            var lineFitter = _subtitleText.GetComponent<CaptionTextFitter>();
+            if (lineFitter == null) lineFitter = _subtitleText.gameObject.AddComponent<CaptionTextFitter>();
+            lineFitter.Setup(32, 14, 64);
         }
 
         private void BuildChoice(Transform parent)

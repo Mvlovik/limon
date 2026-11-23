@@ -16,15 +16,15 @@ namespace GameLimon.EditorTools
     /// </summary>
     public static class GGDefCharacterSetup
     {
-        private const string GgPath = "Assets/_Project/Art/cheliki/Models/GG_DEF.fbx";
+        private const string GgPath = "Assets/_Project/Art/Characters/GG/GG_DEF.fbx";
 
         private const string PackSource = "Assets/VanillaLoopStudio";
         private const string PackDest = "Assets/_Project/Art/Animations/VanillaLoopStudio";
         private const string PackRoot = PackDest + "/FreeSampleAnimationSet";
 
         private const string ControllerPath = "Assets/_Project/Art/Animations/GG/GG.controller";
-        private const string MaterialFolder = "Assets/_Project/Art/cheliki/Materials";
-        private const string TexturePath = "Assets/_Project/Art/cheliki/Textures/Character_07.png";
+        private const string MaterialFolder = "Assets/_Project/Art/Characters/Materials";
+        private const string TexturePath = "Assets/_Project/Art/Characters/Textures/Character_07.png";
 
         private const string IdleFbx = PackRoot +
             "/Art/Animations/SurvivalSet/Mannequin/Flashlight/Idle/RightHand/Type01/A_Flashlight_Idle_01_R.fbx";

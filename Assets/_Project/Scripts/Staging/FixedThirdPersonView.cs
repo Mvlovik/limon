@@ -80,7 +80,7 @@ namespace GameLimon.Staging
                 _player = playerObject.transform;
                 _look = playerObject.GetComponent<PlayerLook>();
                 _motor = playerObject.GetComponent<PlayerMotor>();
-                _firstPersonBody = playerObject.GetComponentInChildren<FirstPersonBody>(true);
+                _firstPersonBody = playerObject.GetComponentInChildren<FirstPersonBody>();
                 _playerCamera = playerObject.GetComponentInChildren<Camera>(true);
                 _playerListener = _playerCamera != null ? _playerCamera.GetComponent<AudioListener>() : null;
             }

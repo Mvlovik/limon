@@ -1,4 +1,5 @@
 using System.Collections;
+using GameLimon.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -56,11 +57,13 @@ namespace GameLimon.Story
 
         public static void SetCaptionRect(RectTransform rect)
         {
-            rect.anchorMin = new Vector2(0.135f, 0f);
-            rect.anchorMax = new Vector2(0.865f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.sizeDelta = new Vector2(0f, 108f);
-            rect.anchoredPosition = new Vector2(0f, 11f);
+            // Процентные якоря: панель субтитров всегда внутри экрана,
+            // при любом разрешении и соотношении сторон не уезжает за край.
+            rect.anchorMin = new Vector2(0.1f, 0.06f);
+            rect.anchorMax = new Vector2(0.9f, 0.24f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(0f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 0f);
         }
 
         public static void StyleCaption(Text label)
@@ -77,6 +80,12 @@ namespace GameLimon.Story
             if (shadow == null) shadow = label.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
             shadow.effectDistance = new Vector2(1.5f, -1.5f);
+
+            // Шрифт масштабируется от высоты канваса: субтитры видны и читаемы
+            // на любом разрешении, включая нестандартные соотношения сторон.
+            var fitter = label.GetComponent<CaptionTextFitter>();
+            if (fitter == null) fitter = label.gameObject.AddComponent<CaptionTextFitter>();
+            fitter.Setup(30, 16, 64);
         }
 
         public void ShowImmediate(string text)

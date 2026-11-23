@@ -15,6 +15,11 @@ namespace GameLimon.Player
         [Tooltip("Отношение скорости спринта к скорости шага. Нужно для нормализации Speed.")]
         [SerializeField] private float sprintToWalkRatio = 1.625f;
 
+        [Tooltip("Сдвиг камеры первого лица вперёд по локальной Z тела (м). " +
+                 "Компенсирует выступающую грудь/куртку: без сдвига при взгляде вниз " +
+                 "модель занимает пол экрана.")]
+        [SerializeField, Min(0f)] private float cameraForwardOffset = 0f;
+
         private Transform _head;
         private Transform _spine;
         private Transform _spine1;
@@ -29,6 +34,9 @@ namespace GameLimon.Player
         private Renderer[] _hiddenRenderers;
 
         public RuntimeAnimatorController LocomotionController => animator != null ? animator.runtimeAnimatorController : null;
+
+        /// <summary>Сдвиг камеры первого лица вперёд по локальной Z тела (м).</summary>
+        public float CameraForwardOffset => cameraForwardOffset;
 
         public void SetExternalView(bool active, Animator externalAnimator = null)
         {
@@ -100,9 +108,13 @@ namespace GameLimon.Player
             if (animator == null)
                 return;
 
-            // Голова не должна попадать в камеру от первого лица.
+            // Голова и шея не должны попадать в камеру от первого лица.
+            // Шею скрываем тоже: у высоких моделей камера оказывается на уровне
+            // шеи, и при беге её геометрия попадает в кадр.
             if (_head != null)
                 _head.localScale = Vector3.one * 0.001f;
+            if (_neck != null)
+                _neck.localScale = Vector3.one * 0.001f;
 
             if (motor == null)
                 return;

@@ -134,7 +134,7 @@ namespace GameLimon.Story
 
             if (hideFirstPersonBodyDuringWake)
             {
-                _hiddenBody = _player.GetComponentInChildren<FirstPersonBody>(true);
+                _hiddenBody = _player.GetComponentInChildren<FirstPersonBody>();
                 _hiddenBody?.SetExternalView(true);
             }
 

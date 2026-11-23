@@ -1,19 +1,26 @@
 using System.Collections.Generic;
+using GameLimon.MainMenu;
 using GameLimon.Story;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace GameLimon.Core
 {
     /// <summary>
-    /// !!!!!!!!!!!!!!!!!! Временный автозапуск игры из Boot
+    /// Точка входа Boot-сцены.
+    /// Пока автозапуск не нужен: без отладочной сцены Boot открывает главное меню.
+    /// Запуск конкретной сцены из меню идёт через MenuLaunchRequest (MenuBootIntegration),
+    /// а отладочный запуск из редактора — через явно заданную debugStartScene.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class BootAutoStart : MonoBehaviour
     {
+        private const string MenuSceneName = "MainMenu";
+
         [SerializeField] private bool allowInBuilds;
 
         [Header("Отладка (только в редакторе)")]
-        [Tooltip("С какой сцены начать игру. Пусто - с первой сцены последовательности.")]
+        [Tooltip("С какой сцены начать игру. Пусто — открыть главное меню.")]
         [SerializeField] private SceneDefinition debugStartScene;
 
         [Tooltip("Флаги, которые нужно выставить до старта. Например, флаги предыдущих сцен, " +
@@ -25,26 +32,49 @@ namespace GameLimon.Core
             if (!Application.isEditor && !allowInBuilds)
                 return;
 
-            GameFlow flow = GameRoot.Instance != null ? GameRoot.Instance.Flow : GetComponent<GameFlow>();
-            if (flow == null)
+            // Запуск через главное меню: MenuBootIntegration погасит этот
+            // компонент и сам запустит запрошенную сцену.
+            if (MenuLaunchRequest.HasPending)
+                return;
+
+            // Отладочный запуск конкретной сцены — только если она явно задана.
+            if (debugStartScene != null)
             {
-                Debug.LogWarning("[BootAutoStart] GameFlow не найден");
+                GameFlow flow = GameRoot.Instance != null ? GameRoot.Instance.Flow : GetComponent<GameFlow>();
+                if (flow == null)
+                {
+                    Debug.LogWarning("[BootAutoStart] GameFlow не найден");
+                    return;
+                }
+
+                int startIndex = 0;
+                if (flow.Sequence != null)
+                {
+                    int index = flow.Sequence.IndexOf(debugStartScene.Id);
+                    if (index >= 0)
+                        startIndex = index;
+                    else
+                        Debug.LogWarning($"[BootAutoStart] Сцена '{debugStartScene.Id}' не найдена в последовательности. Начинаю с первой.");
+                }
+
+                ApplyDebugFlags();
+                flow.StartGame(startIndex);
                 return;
             }
 
-            ApplyDebugFlags();
-
-            int startIndex = 0;
-            if (debugStartScene != null && flow.Sequence != null)
+            // Обычный вход в игру — через главное меню.
+            if (!SceneAvailability.CanLoad(MenuSceneName))
             {
-                int index = flow.Sequence.IndexOf(debugStartScene.Id);
-                if (index >= 0)
-                    startIndex = index;
-                else
-                    Debug.LogWarning($"[BootAutoStart] Сцена '{debugStartScene.Id}' не найдена в последовательности. Начинаю с первой.");
+                Debug.LogError($"[BootAutoStart] Сцена \"{MenuSceneName}\" отсутствует в Build Settings — меню не открыть.");
+                return;
             }
 
-            flow.StartGame(startIndex);
+            // Игрок в Boot захватил курсор (PlayerLook). Блокировка курсора
+            // переживает смену сцены — в меню возвращаем видимость и кликабельность.
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
+            SceneManager.LoadScene(MenuSceneName, LoadSceneMode.Single);
         }
 
         private void ApplyDebugFlags()

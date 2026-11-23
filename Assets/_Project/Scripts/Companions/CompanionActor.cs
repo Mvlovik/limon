@@ -31,6 +31,26 @@ namespace GameLimon.Companions
         [Min(0f)]
         [SerializeField] private float followDistance = 2.8f;
 
+        [Header("Столкновения с игроком")]
+        [Tooltip("Отталкивать игрока, если напарник налетает на него на бегу.")]
+        [SerializeField] private bool pushPlayer = true;
+
+        [Tooltip("С какой дистанции напарник отталкивает игрока, м.")]
+        [Min(0.1f)]
+        [SerializeField] private float pushDistance = 1f;
+
+        [Tooltip("Радиус тела напарника для вытеснения игрока из пересечения, м.")]
+        [Min(0.1f)]
+        [SerializeField] private float pushRadius = 0.55f;
+
+        [Tooltip("Скорость отталкивания игрока, м/с.")]
+        [Min(0f)]
+        [SerializeField] private float pushStrength = 2.5f;
+
+        [Tooltip("За сколько секунд вытеснять игрока из пересечения с напарником.")]
+        [Min(0.05f)]
+        [SerializeField] private float pushResolveTime = 0.15f;
+
         [Tooltip("Останавливаться, когда игрок ближе этого расстояния, м.")]
         [Min(0f)]
         [SerializeField] private float followStopDistance = 1.9f;
@@ -41,11 +61,11 @@ namespace GameLimon.Companions
         [Header("Скорость")]
         [Tooltip("Обычная скорость ходьбы, м/с.")]
         [Min(0f)]
-        [SerializeField] private float walkSpeed = 2.4f;
+        [SerializeField] private float walkSpeed = 1.92f;
 
         [Tooltip("Скорость, когда нужно догонять игрока, м/с.")]
         [Min(0f)]
-        [SerializeField] private float catchUpSpeed = 5.6f;
+        [SerializeField] private float catchUpSpeed = 4.48f;
 
         [Tooltip("С какого расстояния включается полная скорость догоняния, м.")]
         [Min(0f)]
@@ -58,6 +78,12 @@ namespace GameLimon.Companions
         [Tooltip("Ускорение и торможение, м/с².")]
         [Min(0.01f)]
         [SerializeField] private float acceleration = 12f;
+
+        [Tooltip("Скорость доворота в позу точки после прибытия, градусов в секунду. " +
+                 "Плавный доворот вместо мгновенного снапа: модель персонажа может быть " +
+                 "смещена внутри рута, и мгновенный разворот выглядит как телепорт.")]
+        [Min(0f)]
+        [SerializeField] private float settleTurnSpeed = 540f;
 
         [Tooltip("Скорость поворота, градусов в секунду.")]
         [Min(0f)]
@@ -99,6 +125,7 @@ namespace GameLimon.Companions
 
         private Transform _player;
         private float _playerSearchTimer;
+        private CharacterController _playerController;
 
         private Vector3 _velocity;
         private float _verticalVelocity;
@@ -114,6 +141,9 @@ namespace GameLimon.Companions
 
         private float _holdTimer;
         private bool _isFollowing;
+
+        private Quaternion _settleRotation;
+        private bool _settling;
 
         /// <summary>Наибольший порядок среди принятых точек — только для отладки.</summary>
         public int HighestOrder => _highestOrder;
@@ -160,6 +190,8 @@ namespace GameLimon.Companions
 
             ResolvePlayer(force: false);
             UpdateMotion(dt);
+            UpdateSettleRotation(dt);
+            PushPlayer(dt);
             UpdateAnimator(dt);
         }
 
@@ -196,6 +228,7 @@ namespace GameLimon.Companions
             _activeOrder = order;
             _lastActivationFrame = activationFrame;
             _lastActivationProgress = activationProgress;
+            _settling = false;
 
             if (order > _highestOrder)
                 _highestOrder = order;
@@ -297,7 +330,7 @@ namespace GameLimon.Companions
             {
                 RotateTowards(flatVelocity);
             }
-            else if (lookAtPlayer && _player != null)
+            else if (lookAtPlayer && _player != null && !_settling)
             {
                 Vector3 toPlayer = _player.position - transform.position;
                 toPlayer.y = 0f;
@@ -338,13 +371,80 @@ namespace GameLimon.Companions
             _velocity = Vector3.zero;
             _isFollowing = false;
 
-            // Встаём в позу точки, чтобы следующая катсцена/диалог не
-            // разворачивали NPC рывком.
+            // Встаём в позу точки плавно, чтобы следующая катсцена/диалог не
+            // разворачивали NPC рывком. Мгновенный снап здесь нельзя: модель
+            // может быть смещена внутри рута, и разворот выглядит телепортом.
             if (waypoint != null)
             {
-                transform.rotation = waypoint.transform.rotation;
+                _settleRotation = waypoint.transform.rotation;
+                _settling = true;
                 WaypointReached?.Invoke(waypoint);
             }
+        }
+
+        /// <summary>Плавный доворот в позу точки после прибытия.</summary>
+        private void UpdateSettleRotation(float dt)
+        {
+            if (!_settling)
+                return;
+
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, _settleRotation, settleTurnSpeed * dt);
+
+            if (Quaternion.Angle(transform.rotation, _settleRotation) <= 0.1f)
+            {
+                transform.rotation = _settleRotation;
+                _settling = false;
+            }
+        }
+
+        private void OnDisable()
+        {
+            // Катсцена могла выключить компонент посреди доворота — не оставить его висеть.
+            _settling = false;
+        }
+
+        /// <summary>
+        /// Отталкивает игрока, если напарник на него налетает.
+        /// Джо движется кинематически и физику не задевает, поэтому игрока
+        /// толкаем вручную через его CharacterController — строго ОТ напарника
+        /// по радиусу. Никакого импульса в сторону бега: на пересечении
+        /// траекторий иначе напарник утащит игрока с собой.
+        /// </summary>
+        private void PushPlayer(float dt)
+        {
+            if (!pushPlayer || _player == null)
+                return;
+
+            Vector3 run = new Vector3(_velocity.x, 0f, _velocity.z);
+            if (run.sqrMagnitude < 0.01f)
+                return;
+
+            if (_playerController == null)
+            {
+                _playerController = _player.GetComponent<CharacterController>();
+                if (_playerController == null)
+                    return;
+            }
+
+            Vector3 offset = _player.position - transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+            if (distance >= pushDistance)
+                return;
+
+            // Толкаем всегда по радиусу — от напарника к игроку.
+            Vector3 direction = distance > 0.001f ? offset / distance : -run.normalized;
+
+            // Чем быстрее движется напарник, тем сильнее толчок.
+            float runFactor = Mathf.Clamp01(run.magnitude / Mathf.Max(0.01f, walkSpeed));
+            float pushSpeed = pushStrength * runFactor;
+
+            // Мягкое вытеснение из пересечения тел.
+            float combinedRadius = pushRadius + _playerController.radius;
+            if (distance < combinedRadius)
+                pushSpeed += (combinedRadius - distance) / pushResolveTime;
+
+            _playerController.Move(direction * (pushSpeed * dt));
         }
 
         private void ResolvePlayer(bool force)
@@ -369,6 +469,7 @@ namespace GameLimon.Companions
 
             GameObject found = GameObject.FindGameObjectWithTag(playerTag);
             _player = found != null ? found.transform : null;
+            _playerController = null;
         }
 
         private bool TrySampleGround(Vector3 position, out float groundY)
