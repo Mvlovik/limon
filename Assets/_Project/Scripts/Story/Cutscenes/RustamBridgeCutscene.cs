@@ -77,7 +77,11 @@ namespace GameLimon.Story
         private FirstPersonBody _playerBody;
         private GameObject _joe;
         private CompanionActor _joeCompanion;
+        private CinemachineCamera[] _shotCameras;
+        private string _desiredShot;
         private AudioSource _shootSourceA;
+        private CutsceneChoice _branchChoice;
+        private bool _thugsEscaped;
         private AudioSource _shootSourceB;
         private AudioSource _shootSourceC;
         private AudioSource _ringingSource;
@@ -122,17 +126,10 @@ namespace GameLimon.Story
             _joe = FindObjectByName("Joe");
             if (_joe != null)
             {
+                // Напарника НЕ глушим: катсцена теперь стартует сразу, и Джо
+                // спокойно доходит до своей точки уже внутри интро (движение
+                // и анимация шага продолжают работать).
                 _joeCompanion = _joe.GetComponent<CompanionActor>();
-                if (_joeCompanion != null)
-                    _joeCompanion.enabled = false;
-
-                StopLocomotion(_joe.transform);
-
-                // Joe приходит к JoeIntro своим ходом по маршруту.
-                // Позицию не телепортируем: последняя точка маршрута совпадает
-                // с JoeIntro, а поворот выставляем без изменения места.
-                if (joeIntroMark != null)
-                    _joe.transform.rotation = joeIntroMark.rotation;
             }
 
             RestoreStandingPoses();
@@ -140,11 +137,33 @@ namespace GameLimon.Story
             SetStandingCast(true);
             SetAftermath(false, true);
             SetHiddenState(true);
+            _thugsEscaped = false;
+            _branchChoice = CutsceneChoice.Wait;
+            _shotCameras = Object.FindObjectsByType<CinemachineCamera>(FindObjectsInactive.Include);
+            _desiredShot = null;
+
+            // Timeline-треки камер перехватывают CinemachineBrain и держат
+            // первый шот на весь клип (у интро это 11 с) — из-за этого камера
+            // «зависала». Отвязываем камерные треки: планы переключаем сами
+            // через приоритеты, а анимация/атмосфера таймлайнов продолжают играть.
+            DetachCameraTracks(introDirector);
+            DetachCameraTracks(branchADirector);
+            DetachCameraTracks(aftermathDirector);
+            DetachCameraTracks(finaleDirector);
 
             if (finaleProps != null)
                 finaleProps.SetActive(false);
 
             Debug.Log("[BridgeCutscene] prepared");
+        }
+
+        private void Update()
+        {
+            // Timeline-треки камер при остановке возвращают приоритеты Cinemachine
+            // к состоянию на момент запуска и «откатывают» вручную выбранный план.
+            // Пока катсцена играет, удерживаем нужный шот каждый кадр.
+            if (IsPlaying && _desiredShot != null)
+                ApplyShot(_desiredShot);
         }
 
         protected override IEnumerator PlayContent()
@@ -181,11 +200,15 @@ namespace GameLimon.Story
             PlayTimeline(introDirector);
 
             yield return PlayTalkLine("Джо", "Тихо. Смотри туда.", 40f, 1.2f);
+
+            // [Камера поворачивается в сторону закутка у стены.]
+            // Камерные треки таймлайнов отвязаны в PrepareCutscene, поэтому
+            // план переключается сразу по репликам.
+            FocusCamera("CM_Shot_Nook");
             yield return PlayTalkLine("Рустам", "Я вам все рассказал еще тогда! Оставьте меня в покое!", 45f, 0.9f);
             yield return PlayTalkLine("Бандит", "Не все, старик. Ты знаешь, кого мы ищем. Где он?", 45f, 0.9f);
 
-            yield return WaitForTimeline(introDirector);
-            FocusCamera("CM_Shot_Rustam");
+            FocusCamera("CM_Shot_Approach");
             yield return PlayTalkLine("Джо", "Ждем. Узнаем, что им нужно.", 40f, 1.3f);
             Debug.Log("[BridgeCutscene] intro finished");
         }
@@ -195,17 +218,84 @@ namespace GameLimon.Story
             FocusCamera("CM_Shot_Wait");
             PlayTimeline(branchADirector);
             yield return PlayTalkLine("Джо", "Спокойно. Пусть выговорятся.", 40f, 0.9f);
-            yield return new WaitForSecondsRealtime(2.2f);
-            yield return PlayTalkLine("Бандит", "У меня нет времени. Говори, или я те колено прострелю!", 48f, 0.7f);
-            yield return PlayTalkLine("Рустам", "Не-ет! Подожди! Я не знаю...", 42f, 0.5f);
-            yield return PlayTalkLine("ГГ и Джо", "ПОЛИЦИЯ! БРОСАЙТЕ ОРУЖИЕ!", 65f, 0.3f);
-            yield return PlayTalkLine("Джо", "Сейчас!", 40f, 0.3f);
 
-            yield return GunfireAndFade();
+            // Выбор по сценарию: [Ждать] / [Действовать], 5 секунд, авто-выбор «Ждать».
+            _branchChoice = CutsceneChoice.Wait;
+            yield return _ui.ShowChoice("Что делать?", 5f, c => _branchChoice = c);
+
+            if (_branchChoice == CutsceneChoice.Act)
+                yield return PlayActBranch();
+            else
+                yield return PlayWaitBranch();
+
             yield return PlayAftermath();
 
             yield return PlayTalkLine("Рустам", "Слушай... тумбочка... у кровати... там подарок от твоего отца... посмотри...", 42f, 1.4f);
-            yield return PlayTalkLine("Джо", "ГГ! Сюда! Быстрее!", 40f, 1.0f);
+            yield return PlayTalkLine("Джо", _thugsEscaped
+                ? "ГГ... ГГ! Иди сюда... Быстрее!"
+                : "ГГ! Сюда! Быстрее!", 40f, 1.0f);
+        }
+
+        /// <summary>Ветка А «Ждать»: бандит нервничает, Рустам кричит, Джо командует.</summary>
+        private IEnumerator PlayWaitBranch()
+        {
+            // Бандит с пистолетом начинает нервничать.
+            yield return new WaitForSecondsRealtime(1.4f);
+            yield return PlayTalkLine("Бандит", "У меня нет времени. Говори, или я те колено прострелю!", 48f, 0.7f);
+            yield return new WaitForSecondsRealtime(0.8f);
+            yield return PlayTalkLine("Рустам", "Не-ет! Подожди! Я не знаю...", 42f, 0.5f);
+
+            // Рустам кричит — Джо подаёт команду.
+            yield return PlayTalkLine("Рустам", "А-а-а!", 70f, 0.3f);
+            yield return PlayTalkLine("Джо", "Сейчас!", 40f, 0.3f);
+            yield return PlayTalkLine("ГГ и Джо", "ПОЛИЦИЯ! БРОСАЙТЕ ОРУЖИЕ!", 65f, 0.3f);
+
+            _thugsEscaped = false;
+            yield return GunfireAndFade();
+        }
+
+        /// <summary>Ветка Б «Действовать»: ГГ вырывается и спугивает бандитов — они уходят живыми.</summary>
+        private IEnumerator PlayActBranch()
+        {
+            _thugsEscaped = true;
+
+            // ГГ дёргается вперёд — резкий короткий «толчок» камеры.
+            yield return CameraFlinch();
+
+            yield return PlayTalkLine("Джо", "Стой, придурок! У них ствол!", 48f, 0.4f);
+
+            // QTE: жать кнопку, чтобы вырваться из хватки Джо.
+            bool brokeFree = false;
+            yield return _ui.RunQte("Вырвись!", 3f, 6, ok => brokeFree = ok);
+            if (!brokeFree)
+                yield return new WaitForSecondsRealtime(0.8f); // Вырывается с трудом — финал тот же.
+
+            yield return PlayTalkLine("ГГ", "ПОЛИЦИЯ! ОТПУСТИ ЕГО!", 60f, 0.4f);
+
+            yield return GunfireAndFade();
+
+            // По сценарию ветки Б бандиты уходят живыми.
+            yield return PlayTalkLine("Джо", "Твою мать! Они ушли! Ты их спугнул!", 45f, 1.0f);
+        }
+
+        /// <summary>Резкий короткий «дёрг» камеры — небольшая анимация рывка ГГ.</summary>
+        private IEnumerator CameraFlinch()
+        {
+            if (_ui != null)
+                StartCoroutine(_ui.Flash(0.25f));
+
+            Camera camera = Camera.main;
+            if (camera == null)
+                yield break;
+
+            float baseFov = camera.fieldOfView;
+            const float duration = 0.24f;
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                camera.fieldOfView = baseFov + Mathf.Sin(t / duration * Mathf.PI) * 6f;
+                yield return null;
+            }
+            camera.fieldOfView = baseFov;
         }
 
         private IEnumerator GunfireAndFade()
@@ -309,12 +399,37 @@ namespace GameLimon.Story
         /// brain falls back to the highest-priority camera, which used to be
         /// the opening shot.
         /// </summary>
-        private static void FocusCamera(string cameraName)
+        private void FocusCamera(string cameraName)
         {
-            CinemachineCamera[] cameras = Object.FindObjectsByType<CinemachineCamera>(FindObjectsSortMode.None);
-            foreach (CinemachineCamera camera in cameras)
+            _desiredShot = cameraName;
+            ApplyShot(cameraName);
+        }
+
+        private void ApplyShot(string cameraName)
+        {
+            if (_shotCameras == null || _shotCameras.Length == 0)
+                _shotCameras = Object.FindObjectsByType<CinemachineCamera>(FindObjectsInactive.Include);
+
+            foreach (CinemachineCamera camera in _shotCameras)
                 if (camera != null)
                     camera.Priority = camera.name == cameraName ? 100 : 0;
+        }
+
+        /// <summary>
+        /// Отвязывает камерный трек таймлайна от CinemachineBrain. При пустом
+        /// биндинге CinemachineMixer.ProcessFrame просто ничего не делает —
+        /// камеры остаются под нашим управлением, а остальные треки работают.
+        /// </summary>
+        private static void DetachCameraTracks(PlayableDirector director)
+        {
+            if (director == null || director.playableAsset == null)
+                return;
+
+            foreach (PlayableBinding output in director.playableAsset.outputs)
+            {
+                if (output.outputTargetType == typeof(CinemachineBrain) && output.sourceObject != null)
+                    director.SetGenericBinding(output.sourceObject, null);
+            }
         }
 
         private static void SetLightEnabled(string lightName, bool enabled)
@@ -333,8 +448,21 @@ namespace GameLimon.Story
                 yield break;
             }
 
-            while (director.state == PlayState.Playing)
+            // Ждём не «пока director Playing», а не дольше длительности клипа:
+            // битый или зацикленный трек иначе держит катсцену вечно и она
+            // никогда не доходит до затемнения.
+            float duration = director.duration > 0.0 ? (float)director.duration : 0f;
+            float limit = Mathf.Max(fallbackHold, duration + 2f);
+            float end = Time.unscaledTime + limit;
+
+            while (director.state == PlayState.Playing && Time.unscaledTime < end)
                 yield return null;
+
+            if (director.state == PlayState.Playing)
+            {
+                Debug.LogWarning("[BridgeCutscene] Timeline не завершился вовремя — останавливаю принудительно.");
+                director.Stop();
+            }
 
             // Не ждём лишний кадр: при остановке Timeline Cinemachine возвращает
             // приоритеты камер к состоянию на момент запуска, и без немедленного
@@ -392,10 +520,27 @@ namespace GameLimon.Story
         private void LayDownAfterShot()
         {
             LayDown(rustamStanding, rustamBody);
-            LayDown(ResolveThugA(), thugABody);
-            LayDown(ResolveBandit(), thugBBody);
 
-            SetAftermath(false, true);
+            if (_thugsEscaped)
+            {
+                // Ветка Б: бандиты ушли живыми — их тел на полу нет.
+                if (thugAStanding != null) thugAStanding.SetActive(false);
+                if (thugABody != null) thugABody.SetActive(false);
+
+                GameObject bandit = ResolveBandit();
+                if (bandit != null) bandit.SetActive(false);
+                if (thugBBody != null) thugBBody.SetActive(false);
+
+                if (pistolInThugHand != null)
+                    pistolInThugHand.SetActive(false);
+            }
+            else
+            {
+                LayDown(ResolveThugA(), thugABody);
+                LayDown(ResolveBandit(), thugBBody);
+            }
+
+            SetAftermath(false, !_thugsEscaped);
             PlaceBloodOnGround();
         }
 

@@ -100,6 +100,13 @@ namespace GameLimon.Story
 
             IsPlaying = true;
             CapturePlayerState();
+
+            // Камеру катсцены включаем ДО отключения камер игрока: иначе на
+            // кадре передачи не остаётся ни одной активной камеры, и Game view
+            // показывает "No camera rendering".
+            cutsceneCamera.gameObject.SetActive(true);
+            cutsceneCamera.enabled = true;
+
             PrepareCutscene();
 
             Camera fromCamera = _playerCameras.Count > 0 ? _playerCameras[0] : null;
@@ -107,12 +114,21 @@ namespace GameLimon.Story
             Vector3 destination = cutsceneCamera.transform.position;
             Quaternion destinationRotation = cutsceneCamera.transform.rotation;
 
-            cutsceneCamera.gameObject.SetActive(true);
-            cutsceneCamera.enabled = true;
+            if (!cutsceneCamera.isActiveAndEnabled)
+            {
+                Debug.LogError("[SceneCutscene] Камера катсцены не рендерит: объект неактивен в иерархии или компонент выключен.", cutsceneCamera);
+            }
 
             AudioListener cutsceneListener = cutsceneCamera.GetComponent<AudioListener>();
-            if (cutsceneListener != null)
-                cutsceneListener.enabled = true;
+            if (cutsceneListener == null)
+            {
+                // Камера катсцены обычно без слушателя, а слушатели игрока мы
+                // только что выключили: без этого Unity пишет «There are no
+                // audio listeners in the scene» и в катсцене нет звука.
+                cutsceneListener = cutsceneCamera.gameObject.AddComponent<AudioListener>();
+            }
+
+            cutsceneListener.enabled = true;
 
             if (fromCamera != null && cameraBlendDuration > 0f)
             {

@@ -35,6 +35,11 @@ namespace GameLimon.Companions
         [Tooltip("Если напарник уже стоит в зоне, сразу отправить его к точке.")]
         [SerializeField] private bool pushToWaypoint = true;
 
+        [Tooltip("Ждать реального прихода напарника перед установкой флага. " +
+                 "Если выключено — флаг ставится сразу при входе игрока, а напарник " +
+                 "доходит до точки уже во время катсцены (без задержки старта).")]
+        [SerializeField] private bool waitForArrival = false;
+
         private bool _playerInside;
         private bool _arrived;
 
@@ -80,18 +85,31 @@ namespace GameLimon.Companions
 
         private void Tick()
         {
-            if (_arrived || actor == null)
+            if (actor == null)
                 return;
 
-            float distance = Vector3.Distance(actor.transform.position, ArrivalPosition);
-
-            // Ждём именно завершения движения: пока ActiveWaypoint != null,
-            // напарник ещё бежит и может быть в паре метров от финальной позы.
-            if (distance <= arrivalRadius && actor.ActiveWaypoint == null)
+            if (!_arrived)
             {
-                _arrived = true;
-                SetFlag(arrivalFlag);
-                return;
+                if (!waitForArrival)
+                {
+                    // Катсцена стартует сразу: напарник доходит до точки уже
+                    // внутри интро, а не блокирует её начало своим походом.
+                    _arrived = true;
+                    SetFlag(arrivalFlag);
+                }
+                else
+                {
+                    float distance = Vector3.Distance(actor.transform.position, ArrivalPosition);
+
+                    // Ждём именно завершения движения: пока ActiveWaypoint != null,
+                    // напарник ещё бежит и может быть в паре метров от финальной позы.
+                    if (distance <= arrivalRadius && actor.ActiveWaypoint == null)
+                    {
+                        _arrived = true;
+                        SetFlag(arrivalFlag);
+                        return;
+                    }
+                }
             }
 
             if (!pushToWaypoint || waypoint == null)

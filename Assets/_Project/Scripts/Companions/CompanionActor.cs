@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GameLimon.Player;
 using UnityEngine;
 
 namespace GameLimon.Companions
@@ -413,6 +414,12 @@ namespace GameLimon.Companions
         private void PushPlayer(float dt)
         {
             if (!pushPlayer || _player == null)
+                return;
+
+            // Пока управление у катсцены (игрок заблокирован) — не толкаем:
+            // игрока не должно таскать во время кинематики.
+            PlayerMotor lockedMotor = _player.GetComponent<PlayerMotor>();
+            if (lockedMotor != null && lockedMotor.ControlLocked)
                 return;
 
             Vector3 run = new Vector3(_velocity.x, 0f, _velocity.z);

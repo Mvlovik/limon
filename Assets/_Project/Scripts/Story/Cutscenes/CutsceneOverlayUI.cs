@@ -35,10 +35,16 @@ namespace GameLimon.Story
         private Text _subtitleSpeaker;
         private Text _subtitleText;
         private CanvasGroup _choiceGroup;
+        private RectTransform _choiceRect;
         private Text _choiceTitle;
+        private Text _choiceHint;
         private Text _choiceTimer;
         private Button _waitButton;
         private Button _actButton;
+        private CanvasGroup _waitGroup;
+        private CanvasGroup _actGroup;
+        private Vector2 _waitBasePos;
+        private Vector2 _actBasePos;
         private CanvasGroup _qteGroup;
         private Text _qteText;
         private Image _qteFill;
@@ -192,36 +198,72 @@ namespace GameLimon.Story
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(760f, 300f);
-            rect.anchoredPosition = new Vector2(0f, -40f);
+            rect.sizeDelta = new Vector2(860f, 400f);
+            rect.anchoredPosition = new Vector2(0f, -60f);
+            _choiceRect = rect;
 
             _choiceGroup = groupObject.AddComponent<CanvasGroup>();
             _choiceGroup.alpha = 0f;
             _choiceGroup.blocksRaycasts = false;
             _choiceGroup.interactable = false;
 
-            _choiceTitle = CreateText(groupObject.transform, "Prompt", 26, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.88f, 1f));
-            RectTransform titleRect = _choiceTitle.rectTransform;
-            titleRect.anchorMin = new Vector2(0f, 1f);
-            titleRect.anchorMax = new Vector2(1f, 1f);
-            titleRect.pivot = new Vector2(0.5f, 1f);
-            titleRect.sizeDelta = new Vector2(0f, 40f);
-            titleRect.anchoredPosition = new Vector2(0f, -8f);
+            // Затемняющая подложка: текст читаем поверх игры и зоны не «слипаются».
+            RectTransform backdrop = CreatePanel(groupObject.transform, "Backdrop", new Color(0f, 0f, 0f, 0.62f));
+            backdrop.gameObject.GetComponent<Image>().raycastTarget = true;
 
-            _waitButton = CreateButton(groupObject.transform, "WaitButton", "[ Ждать ]", new Vector2(-170f, -110f), out Text waitLabel);
-            _actButton = CreateButton(groupObject.transform, "ActButton", "[ Действовать ]", new Vector2(170f, -110f), out Text actLabel);
-            waitLabel.color = new Color(0.92f, 0.92f, 0.88f, 1f);
-            actLabel.color = new Color(0.92f, 0.92f, 0.88f, 1f);
+            // Зона заголовка — верхняя треть панели, кнопки её не касаются.
+            _choiceTitle = CreateText(groupObject.transform, "Prompt", 28, TextAnchor.MiddleCenter, new Color(0.9f, 0.9f, 0.88f, 1f));
+            RectTransform titleRect = _choiceTitle.rectTransform;
+            titleRect.anchorMin = new Vector2(0f, 0.72f);
+            titleRect.anchorMax = new Vector2(1f, 0.97f);
+            titleRect.offsetMin = new Vector2(24f, 0f);
+            titleRect.offsetMax = new Vector2(-24f, 0f);
+
+            // Кнопки — по центру, с подписью клавиши прямо на кнопке.
+            _waitButton = CreateButton(groupObject.transform, "WaitButton", "[1] Ждать", Vector2.zero, out Text waitLabel);
+            _actButton = CreateButton(groupObject.transform, "ActButton", "[2] Действовать", Vector2.zero, out Text actLabel);
+
+            // Нельзя использовать ?? с UnityEngine.Object: GetComponent возвращает
+            // «фальшивый null», который оператор ?? считает валидным объектом.
+            // Из-за этого CanvasGroup не добавлялся, и Build() падал с
+            // MissingComponentException — катсцена не доходила до контента.
+            _waitGroup = _waitButton.GetComponent<CanvasGroup>();
+            if (_waitGroup == null)
+                _waitGroup = _waitButton.gameObject.AddComponent<CanvasGroup>();
+
+            _actGroup = _actButton.GetComponent<CanvasGroup>();
+            if (_actGroup == null)
+                _actGroup = _actButton.gameObject.AddComponent<CanvasGroup>();
+            _waitBasePos = new Vector2(-200f, 10f);
+            _actBasePos = new Vector2(200f, 10f);
+            _waitButton.transform.localScale = Vector3.one;
+            _actButton.transform.localScale = Vector3.one;
             _waitButton.onClick.AddListener(() => _choiceIndex = 0);
             _actButton.onClick.AddListener(() => _choiceIndex = 1);
 
+            waitLabel.fontSize = 28;
+            actLabel.fontSize = 28;
+            waitLabel.color = new Color(0.92f, 0.92f, 0.88f, 1f);
+            actLabel.color = new Color(0.92f, 0.92f, 0.88f, 1f);
+
+            // Подсказка под кнопками.
+            _choiceHint = CreateText(groupObject.transform, "Hint", 20, TextAnchor.MiddleCenter, new Color(0.75f, 0.75f, 0.72f, 0.9f));
+            RectTransform hintRect = _choiceHint.rectTransform;
+            hintRect.anchorMin = new Vector2(0f, 0.2f);
+            hintRect.anchorMax = new Vector2(1f, 0.3f);
+            hintRect.offsetMin = new Vector2(24f, 0f);
+            hintRect.offsetMax = new Vector2(-24f, 0f);
+
+            // Таймер — самая нижняя полоса.
             _choiceTimer = CreateText(groupObject.transform, "Timer", 22, TextAnchor.MiddleCenter, new Color(0.75f, 0.75f, 0.72f, 1f));
             RectTransform timerRect = _choiceTimer.rectTransform;
-            timerRect.anchorMin = new Vector2(0f, 0f);
-            timerRect.anchorMax = new Vector2(1f, 0f);
-            timerRect.pivot = new Vector2(0.5f, 0f);
-            timerRect.sizeDelta = new Vector2(0f, 34f);
-            timerRect.anchoredPosition = new Vector2(0f, 4f);
+            timerRect.anchorMin = new Vector2(0f, 0.02f);
+            timerRect.anchorMax = new Vector2(1f, 0.14f);
+            timerRect.offsetMin = new Vector2(24f, 0f);
+            timerRect.offsetMax = new Vector2(-24f, 0f);
+
+            _waitGroup.alpha = 0f;
+            _actGroup.alpha = 0f;
         }
 
         private void BuildQte(Transform parent)
@@ -415,9 +457,11 @@ namespace GameLimon.Story
             _choiceIndex = -1;
             _choiceTitle.text = prompt;
             _choiceTimer.text = string.Empty;
-            _choiceGroup.alpha = 1f;
+            if (_choiceHint != null) _choiceHint.text = "Выбери [1] или [2] — или щёлкни кнопку";
             _choiceGroup.blocksRaycasts = true;
             _choiceGroup.interactable = true;
+
+            yield return ChoiceEnterAnimation();
 
             float remaining = Mathf.Max(0.1f, timeout);
             while (remaining > 0f && _choiceIndex < 0)
@@ -425,14 +469,79 @@ namespace GameLimon.Story
                 ReadChoiceKeys();
                 remaining -= Time.unscaledDeltaTime;
                 _choiceTimer.text = $"Автовыбор через {Mathf.Max(0, Mathf.CeilToInt(remaining))} с";
+
+                // Пульс обеих кнопок, пока игрок думает.
+                float pulse = 0.78f + 0.22f * Mathf.Sin(Time.unscaledTime * 5.5f);
+                _waitGroup.alpha = pulse;
+                _actGroup.alpha = pulse;
+
                 yield return null;
             }
 
             CutsceneChoice choice = _choiceIndex == 1 ? CutsceneChoice.Act : CutsceneChoice.Wait;
             _choiceGroup.blocksRaycasts = false;
             _choiceGroup.interactable = false;
-            _choiceGroup.alpha = 0f;
+            yield return ChoiceExitAnimation();
             onComplete?.Invoke(choice);
+        }
+
+        /// <summary>Въезд панели: затемнение + масштаб, затем поочерёдное появление кнопок.</summary>
+        private IEnumerator ChoiceEnterAnimation()
+        {
+            _choiceGroup.alpha = 0f;
+            _choiceRect.localScale = Vector3.one * 0.88f;
+            _waitGroup.alpha = 0f;
+            _actGroup.alpha = 0f;
+            ((RectTransform)_waitButton.transform).anchoredPosition = _waitBasePos + new Vector2(0f, -16f);
+            ((RectTransform)_actButton.transform).anchoredPosition = _actBasePos + new Vector2(0f, -16f);
+
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.unscaledDeltaTime / 0.18f;
+                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+                _choiceGroup.alpha = k;
+                _choiceRect.localScale = Vector3.one * Mathf.Lerp(0.88f, 1f, k);
+                yield return null;
+            }
+            _choiceGroup.alpha = 1f;
+            _choiceRect.localScale = Vector3.one;
+
+            yield return ChoiceButtonSlideIn(_waitButton.transform, _waitBasePos, _waitGroup);
+            yield return ChoiceButtonSlideIn(_actButton.transform, _actBasePos, _actGroup);
+        }
+
+        private IEnumerator ChoiceButtonSlideIn(Transform button, Vector2 basePos, CanvasGroup group)
+        {
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.unscaledDeltaTime / 0.16f;
+                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+                group.alpha = k;
+                ((RectTransform)button).anchoredPosition = Vector2.Lerp(basePos + new Vector2(0f, -16f), basePos, k);
+                yield return null;
+            }
+            group.alpha = 1f;
+            ((RectTransform)button).anchoredPosition = basePos;
+        }
+
+        private IEnumerator ChoiceExitAnimation()
+        {
+            _waitGroup.alpha = 1f;
+            _actGroup.alpha = 1f;
+            float start = _choiceGroup.alpha;
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.unscaledDeltaTime / 0.16f;
+                _choiceGroup.alpha = Mathf.Lerp(start, 0f, t);
+                _choiceRect.localScale = Vector3.one * Mathf.Lerp(1f, 0.94f, t);
+                yield return null;
+            }
+            _choiceGroup.alpha = 0f;
+            _choiceRect.localScale = Vector3.one;
+            _choiceTimer.text = string.Empty;
         }
 
         private void ReadChoiceKeys()
