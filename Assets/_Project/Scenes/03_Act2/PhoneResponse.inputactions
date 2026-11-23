@@ -1,0 +1,101 @@
+{
+    "version": 1,
+    "name": "PhoneResponse",
+    "maps": [
+        {
+            "name": "PhoneResponse",
+            "id": "712855dd-9fff-4223-b7ce-7e4534636a99",
+            "actions": [
+                {
+                    "name": "Silent",
+                    "type": "PassThrough",
+                    "id": "17f45bad-659e-42dc-b45c-a61821b5c432",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "Object",
+                    "type": "PassThrough",
+                    "id": "e2b1280a-0412-4785-8c8e-bb906567ee26",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "9d6230b0-a833-4ec9-9521-7e4b1c5ef12d",
+                    "path": "<Keyboard>/1",
+                    "interactions": "press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Silent",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f39d79e4-66b3-4f1e-8a14-b464144cd541",
+                    "path": "<Keyboard>/numpad1",
+                    "interactions": "press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Silent",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4345c1ef-b30d-4a2f-8175-9fc1431e93d5",
+                    "path": "<Gamepad>/dpad/up",
+                    "interactions": "press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Silent",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0b31ceea-43a4-4598-9587-786da4223a13",
+                    "path": "<Keyboard>/2",
+                    "interactions": "press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Object",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8b03866e-655d-4581-83fb-a308d909eec7",
+                    "path": "<Keyboard>/numpad2",
+                    "interactions": "press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Object",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "eca760ee-7617-47f4-b4fd-805ff8c2fc7f",
+                    "path": "<Gamepad>/dpad/down",
+                    "interactions": "press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Object",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

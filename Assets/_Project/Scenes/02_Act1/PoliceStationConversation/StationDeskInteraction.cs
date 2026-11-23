@@ -37,6 +37,9 @@ namespace GameLimon.Staging
         [Tooltip("Пауза перед затемнением после конца разговора, сек")]
         [SerializeField] private float endHoldDuration = 0.6f;
 
+        private const float SeatReach = 1.35f;
+        private const float FloorTolerance = 0.16f;
+        private const float FloorContactTolerance = 0.06f;
         private const float RingStart = 21.65f;
         private const float HandsetPickup = 22.52f;
         private const float DialogueAmbienceGain = .38f;
@@ -58,11 +61,35 @@ namespace GameLimon.Staging
         private PlayerMotor motor;
         private PlayerLook look;
         private PlayerInteractor interactor;
+        private CharacterController playerController;
+        private FirstPersonBody hiddenPlayerBody;
         private GameObject interactionPrompt;
         private readonly List<Camera> playerCameras = new List<Camera>();
         private readonly List<AudioListener> playerListeners = new List<AudioListener>();
 
-        public override bool CanInteract => !started && base.CanInteract;
+        public override bool CanInteract => isActiveAndEnabled && !started && base.CanInteract && IsAtChair();
+
+        private bool IsAtChair()
+        {
+            if (playerController == null || !playerController.enabled)
+                return false;
+
+            Bounds playerBounds = playerController.bounds;
+            Vector3 feet = playerBounds.center;
+            feet.y = playerBounds.min.y;
+            if (Mathf.Abs(feet.y - transform.position.y) > FloorTolerance)
+                return false;
+
+            Vector3 offset = feet - transform.position;
+            offset.y = 0f;
+            if (offset.sqrMagnitude > SeatReach * SeatReach)
+                return false;
+
+            // Use the support under the capsule; isGrounded can flicker between Move calls.
+            Vector3 probe = feet + Vector3.up * FloorContactTolerance;
+            return Physics.Raycast(probe, Vector3.down, out RaycastHit floor, 2f * FloorContactTolerance,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) && floor.normal.y >= 0.7f;
+        }
 
         private void Awake()
         {
@@ -100,12 +127,14 @@ namespace GameLimon.Staging
             player = GameObject.FindGameObjectWithTag("Player");
             if (player == null && Application.isEditor && editorPlayerPrefab != null)
                 player = Instantiate(editorPlayerPrefab);
-            if (player == null || spawn == null) yield break;
+            if (player == null) yield break;
 
-            var controller = player.GetComponent<CharacterController>();
-            if (controller != null) controller.enabled = false;
+            playerController = player.GetComponent<CharacterController>();
+            if (spawn == null) yield break;
+
+            if (playerController != null) playerController.enabled = false;
             player.transform.SetPositionAndRotation(spawn.position, spawn.rotation);
-            if (controller != null) controller.enabled = true;
+            if (playerController != null) playerController.enabled = true;
             player.GetComponent<PlayerMotor>()?.ResetMomentum();
             player.GetComponent<PlayerMotor>()?.SetControlLocked(false);
             var playerLook = player.GetComponent<PlayerLook>();
@@ -174,6 +203,8 @@ namespace GameLimon.Staging
                 listener.enabled = false;
             }
 
+            hiddenPlayerBody = player.GetComponentInChildren<FirstPersonBody>(true);
+            hiddenPlayerBody?.HideForCutscene();
             firstPerson.SetActive(true);
             joe.SetActive(true);
             conversation.clip.SampleAnimation(conversation.gameObject, 0f);
@@ -370,9 +401,15 @@ namespace GameLimon.Staging
                 root.Flow.CompleteCurrentScene();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             if (!started) return;
+            StopAllCoroutines();
+            if (hiddenPlayerBody != null)
+                hiddenPlayerBody.RestoreAfterCutscene();
+            hiddenPlayerBody = null;
+            if (firstPerson != null) firstPerson.SetActive(false);
+            if (joe != null) joe.SetActive(false);
             if (captions != null) captions.Hide();
             if (motor != null) motor.SetControlLocked(false);
             if (look != null) look.PoseLocked = false;
@@ -386,9 +423,9 @@ namespace GameLimon.Staging
         [ContextMenu("Preview seated conversation (Play Mode)")]
         private void PreviewConversation()
         {
-            if (!Application.isPlaying || !CanInteract) return;
+            if (!Application.isPlaying || started || !base.CanInteract) return;
             var actor = GameObject.FindGameObjectWithTag("Player");
-            if (actor != null) Interact(actor);
+            if (actor != null) OnInteract(actor);
         }
 #endif
     }

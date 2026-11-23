@@ -10,21 +10,18 @@ namespace GameLimon.Staging
     // Apartment-only staging. Existing wake, input, thoughts, quests and exit components remain owners.
     public sealed class ApartmentRustamVisit : InteractableBase
     {
-        public enum VisitPhase { WaitingForWindow, FirstThought, Knocking, WaitingAtDoor, Conversation, Complete }
+        public enum VisitPhase { WaitingForWindow, FirstThought, Knocking, Conversation, Complete }
 
         [SerializeField] private Transform doorHinge;
-        [SerializeField] private Transform doorway;
         [SerializeField] private GameObject rustam;
         [SerializeField] private AudioSource knocks;
         [SerializeField] private AudioClip doorOpenSound;
         [SerializeField] private AudioSource dialogueAudio;
         [SerializeField] private ThoughtSequence firstThought;
         [SerializeField] private ThoughtSequence conversation;
-        [SerializeField] private FixedThirdPersonView fixedView;
         [SerializeField] private CoffeeExitBarrier coffeeBarrier;
         [SerializeField] private Transform returnPosition;
         [SerializeField] private float thoughtBeforeKnock = 1.8f;
-        [SerializeField] private float stopKnockingDistance = 1.8f;
         [SerializeField] private float doorOpenDuration = 0.9f;
 
         private MaleDialoguePlayback dialoguePlayback;
@@ -47,8 +44,7 @@ namespace GameLimon.Staging
 
         public VisitPhase Phase { get; private set; }
         public bool IsKnocking => knocks != null && knocks.isPlaying;
-        public override bool CanInteract => base.CanInteract &&
-            (Phase == VisitPhase.Knocking || Phase == VisitPhase.WaitingAtDoor);
+        public override bool CanInteract => base.CanInteract && Phase == VisitPhase.Knocking;
 
         private void Awake()
         {
@@ -56,6 +52,7 @@ namespace GameLimon.Staging
             closedDoor = doorHinge.localRotation;
             rustam.SetActive(false);
             knocks.playOnAwake = false;
+            knocks.loop = true;
             knocks.Stop();
             if (coffeeBarrier != null)
             {
@@ -102,7 +99,6 @@ namespace GameLimon.Staging
             {
                 Phase = VisitPhase.Complete;
                 RestoreBarrier();
-                fixedView.ActivateView();
                 yield break;
             }
             Phase = VisitPhase.FirstThought;
@@ -111,18 +107,6 @@ namespace GameLimon.Staging
             StoryDirector.Ensure().Stop();
             Phase = VisitPhase.Knocking;
             knocks.Play();
-        }
-
-        private void Update()
-        {
-            if (Phase != VisitPhase.Knocking || player == null) return;
-            Vector3 offset = player.transform.position - doorway.position;
-            offset.y = 0f;
-            if (offset.sqrMagnitude <= stopKnockingDistance * stopKnockingDistance)
-            {
-                knocks.Stop();
-                Phase = VisitPhase.WaitingAtDoor;
-            }
         }
 
         private void LateUpdate()
@@ -246,7 +230,6 @@ namespace GameLimon.Staging
             RestoreBarrier();
             RestoreControl();
             Phase = VisitPhase.Complete;
-            fixedView.ActivateView();
             yield return new WaitForSeconds(0.2f);
             yield return GameRoot.Instance.UI.FadeTo(0f, 0.65f);
         }
