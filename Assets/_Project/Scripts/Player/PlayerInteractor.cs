@@ -14,10 +14,10 @@ namespace GameLimon.Player
         [SerializeField] private Transform view;
 
         [Tooltip("Дальность луча")]
-        [SerializeField] private float distance = 2.5f;
+        [SerializeField] private float distance = 3.2f;
 
         [Tooltip("Радиус сферического луча")]
-        [SerializeField] private float aimRadius = 0.08f;
+        [SerializeField] private float aimRadius = 0.22f;
 
         [Tooltip("Сколько цель должна продержаться в прицеле")]
         [SerializeField] private float focusStability = 0.12f;

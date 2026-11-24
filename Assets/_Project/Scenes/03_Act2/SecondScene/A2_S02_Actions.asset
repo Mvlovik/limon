@@ -93,9 +93,9 @@ MonoBehaviour:
   displayName: "\u0423\u0431\u043E\u0440\u043A\u0430 \u0438 \u0432\u0438\u0437\u0438\u0442 \u0410\u043B\u0435\u043A\u0441\u0430"
   steps:
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Bag
+    objectiveText: "\u0412\u043e\u0437\u044c\u043c\u0438\u0442\u0435 \u043f\u0430\u043a\u0435\u0442 \u0441 \u043c\u0443\u0441\u043e\u0440\u043e\u043c \u043d\u0430 \u043a\u0443\u0445\u043d\u0435"
     onStart:
     - type: 9
       flag: 
@@ -108,9 +108,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_1
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 1 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -123,9 +123,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_2
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 2 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -138,9 +138,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_3
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 3 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -153,9 +153,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_4
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 4 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -168,9 +168,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_5
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 5 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -183,9 +183,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_6
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 6 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -198,9 +198,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Litter_7
+    objectiveText: "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0443\u0441\u043e\u0440 7 \u0438\u0437 7"
     onStart:
     - type: 9
       flag: 
@@ -213,9 +213,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Door
+    objectiveText: "\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0434\u0432\u0435\u0440\u044c, \u043a\u043e\u0433\u0434\u0430 \u043f\u043e\u0441\u0442\u0443\u0447\u0430\u0442"
     onStart:
     - type: 9
       flag: 
@@ -238,9 +238,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Visit
+    objectiveText: "\u0412\u044b\u0439\u0434\u0438\u0442\u0435 \u043a \u0410\u043b\u0435\u043a\u0441\u0443 \u0438 \u043f\u043e\u0433\u043e\u0432\u043e\u0440\u0438\u0442\u0435 \u0441 \u043d\u0438\u043c"
     onStart:
     - type: 9
       flag: 
@@ -253,9 +253,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Exit
+    objectiveText: "\u0412\u044b\u0439\u0434\u0438\u0442\u0435 \u0438\u0437 \u043a\u0432\u0430\u0440\u0442\u0438\u0440\u044b"
     onStart:
     - type: 9
       flag: 
@@ -268,9 +268,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Bin
+    objectiveText: "\u0412\u044b\u0431\u0440\u043e\u0441\u044c\u0442\u0435 \u043f\u0430\u043a\u0435\u0442 \u0432 \u043c\u0443\u0441\u043e\u0440\u043d\u044b\u0439 \u0431\u0430\u043a"
     onStart:
     - type: 9
       flag: 
@@ -293,9 +293,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_AfterBin
+    objectiveText: "\u0418\u0434\u0438\u0442\u0435 \u043a \u043c\u0430\u0448\u0438\u043d\u0435"
     onStart:
     - type: 9
       flag: 
@@ -308,9 +308,9 @@ MonoBehaviour:
       message: 
       cutscene: {fileID: 0}
   - title: "\u0421\u0446\u0435\u043D\u0430 2"
-    objectiveText: 
     icon: {fileID: 0}
     completionFlag: A2_S02_Ride
+    objectiveText: "\u0421\u044f\u0434\u044c\u0442\u0435 \u0432 \u043c\u0430\u0448\u0438\u043d\u0443"
     onStart:
     - type: 9
       flag: 

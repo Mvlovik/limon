@@ -33,6 +33,7 @@ namespace GameLimon.Player
         private Animator _externalAnimator;
         private Renderer[] _hiddenRenderers;
         private bool _externalView;
+        private bool _crouchHidden;
         private int _cutsceneHides;
 
         public RuntimeAnimatorController LocomotionController => animator != null ? animator.runtimeAnimatorController : null;
@@ -62,7 +63,7 @@ namespace GameLimon.Player
 
         private void UpdateBodyVisibility()
         {
-            bool hideBody = _externalView || _cutsceneHides > 0;
+            bool hideBody = _externalView || _cutsceneHides > 0 || _crouchHidden;
             if (hideBody && _hiddenRenderers == null)
             {
                 var hidden = new System.Collections.Generic.List<Renderer>();
@@ -109,6 +110,15 @@ namespace GameLimon.Player
             float ratio = Mathf.Max(1f, sprintToWalkRatio);
             float blend = Mathf.Clamp01(motor.Speed01 / ratio);
             bool crouching = motor.CrouchAmount > 0.5f;
+
+            // The first-person body is hidden while crouching in every scene. The
+            // collider and animator continue to work, so interaction and movement
+            // remain unchanged.
+            if (_crouchHidden != crouching)
+            {
+                _crouchHidden = crouching;
+                UpdateBodyVisibility();
+            }
 
             UpdateLocomotion(animator, blend, crouching);
             if (_externalAnimator != null)

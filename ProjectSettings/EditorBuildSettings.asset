@@ -27,11 +27,20 @@ EditorBuildSettings:
     path: Assets/_Project/Scenes/02_Act1/A1_S04_UnderBridge.unity
     guid: d9e76c0e48211d2459b47282187380e1
   - enabled: 1
+    path: Assets/_Project/Scenes/03_Act2/A2_S01_Apartment.unity
+    guid: 372f904078ea8b245a9db124f1822d82
+  - enabled: 1
+    path: Assets/_Project/Scenes/03_Act2/A2_S02_Alley.unity
+    guid: 4900ba7ee19b66143b74e6b748e18bfe
+  - enabled: 1
     path: Assets/_Project/Scenes/02_Act1/ArchivedEpisodes/NightKnockPrologue/A1_S00_NightKnock.unity
     guid: 01b48d26b7486194fbca6c2ca7b9dfdd
   - enabled: 0
     path: Assets/_Project/Scenes/02_Act1/ArchivedEpisodes/NightKnockPrologue/A1_S01_Apartment_AfterNightmare.unity
     guid: 3457edc2531e4594388c2f67be2d3931
+  - enabled: 1
+    path: Assets/_Project/Scenes/03_Act2/A2_S03_RitaHouse.unity
+    guid: 51f01d933f0d42c2be88421409cadbf6
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

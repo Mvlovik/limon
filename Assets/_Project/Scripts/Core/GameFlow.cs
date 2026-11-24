@@ -150,7 +150,11 @@ namespace GameLimon.Core
             GameState state = root != null ? root.State : null;
             AudioDirector audio = root != null ? root.Audio : null;
 
-            if (ui != null) yield return ui.FadeTo(1f, fadeDuration);
+            if (ui != null)
+            {
+                ui.ShowLoading("Загрузка");
+                yield return ui.FadeTo(1f, fadeDuration);
+            }
 
             // Это чтоб музыка прерывалась при переходу на другую сцену
             if (audio != null)
@@ -159,6 +163,8 @@ namespace GameLimon.Core
             if (loader == null)
             {
                 Debug.LogError("[GameFlow] SceneLoader не найден на GameRoot");
+                if (ui != null)
+                    ui.HideLoading();
                 _isTransitioning = false;
                 yield break;
             }
@@ -172,7 +178,10 @@ namespace GameLimon.Core
             {
                 Debug.LogError($"[GameFlow] Сцена {next.SceneName} не загрузилась");
                 if (ui != null)
+                {
                     yield return ui.FadeTo(0f, fadeDuration);
+                    ui.HideLoading();
+                }
                 _isTransitioning = false;
                 yield break;
             }
@@ -194,7 +203,10 @@ namespace GameLimon.Core
                 QuestDirector.Instance.StopQuest();
 
             if (ui != null)
+            {
                 yield return ui.FadeTo(0f, fadeDuration);
+                ui.HideLoading();
+            }
 
             _isTransitioning = false;
         }

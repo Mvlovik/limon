@@ -15,6 +15,8 @@ namespace GameLimon.UI
         [SerializeField] private float defaultFadeDuration = 0.5f;
 
         private Coroutine _fadeRoutine;
+        private CanvasGroup _loadingGroup;
+        private Text _loadingLabel;
 
         public bool IsFading => _fadeRoutine != null;
 
@@ -29,6 +31,8 @@ namespace GameLimon.UI
                 canvas = built.Canvas;
                 fadeOverlay = built.FadeOverlay;
             }
+
+            BuildLoadingPanel();
         }
 
         /// <summary>Назначает ссылки на канвас</summary>
@@ -71,6 +75,58 @@ namespace GameLimon.UI
 
         public Coroutine FadeOut() => FadeTo(1f, defaultFadeDuration);
         public Coroutine FadeIn() => FadeTo(0f, defaultFadeDuration);
+
+        public void ShowLoading(string message = "Загрузка")
+        {
+            BuildLoadingPanel();
+            if (_loadingLabel != null)
+                _loadingLabel.text = message;
+            if (_loadingGroup != null)
+            {
+                _loadingGroup.alpha = 1f;
+                _loadingGroup.blocksRaycasts = true;
+                _loadingGroup.interactable = true;
+                _loadingGroup.transform.SetAsLastSibling();
+            }
+        }
+
+        public void HideLoading()
+        {
+            if (_loadingGroup == null)
+                return;
+            _loadingGroup.alpha = 0f;
+            _loadingGroup.blocksRaycasts = false;
+            _loadingGroup.interactable = false;
+        }
+
+        private void BuildLoadingPanel()
+        {
+            if (canvas == null || _loadingGroup != null)
+                return;
+
+            GameObject panel = new GameObject("LoadingPanel");
+            panel.transform.SetParent(canvas.transform, false);
+            Image background = panel.AddComponent<Image>();
+            background.color = new Color(0f, 0f, 0f, 0.98f);
+            background.raycastTarget = true;
+            _loadingGroup = panel.AddComponent<CanvasGroup>();
+            _loadingGroup.alpha = 0f;
+            _loadingGroup.blocksRaycasts = false;
+            _loadingGroup.interactable = false;
+            StretchToParent(panel.transform as RectTransform);
+
+            GameObject labelObject = new GameObject("LoadingLabel");
+            labelObject.transform.SetParent(panel.transform, false);
+            _loadingLabel = labelObject.AddComponent<Text>();
+            _loadingLabel.text = "Загрузка";
+            _loadingLabel.alignment = TextAnchor.MiddleCenter;
+            _loadingLabel.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _loadingLabel.fontSize = 42;
+            _loadingLabel.fontStyle = FontStyle.Bold;
+            _loadingLabel.color = new Color(0.78f, 0.96f, 0.94f, 1f);
+            _loadingLabel.raycastTarget = false;
+            StretchToParent(labelObject.transform as RectTransform);
+        }
 
         private IEnumerator FadeRoutine(float targetAlpha, float duration)
         {

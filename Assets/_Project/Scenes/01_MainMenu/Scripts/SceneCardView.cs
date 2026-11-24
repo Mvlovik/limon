@@ -20,7 +20,30 @@ namespace GameLimon.MainMenu
         private void Awake()
         {
             if (button != null)
+            {
                 button.onClick.AddListener(HandleClick);
+                button.transition = Selectable.Transition.ColorTint;
+                var colors = button.colors;
+                colors.normalColor = new Color(0.12f, 0.15f, 0.2f, 0.96f);
+                colors.highlightedColor = new Color(0.22f, 0.3f, 0.38f, 0.98f);
+                colors.pressedColor = new Color(0.32f, 0.42f, 0.5f, 1f);
+                colors.disabledColor = new Color(0.08f, 0.09f, 0.12f, 0.6f);
+                colors.fadeDuration = 0.12f;
+                button.colors = colors;
+                button.transition = Selectable.Transition.ColorTint;
+                MenuButtonHover hover = button.GetComponent<MenuButtonHover>();
+                if (hover == null)
+                    button.gameObject.AddComponent<MenuButtonHover>();
+                Image buttonImage = button.GetComponent<Image>();
+                if (buttonImage != null)
+                    buttonImage.color = new Color(0.055f, 0.1f, 0.15f, 0.98f);
+                if (button.GetComponent<Shadow>() == null)
+                {
+                    var shadow = button.gameObject.AddComponent<Shadow>();
+                    shadow.effectColor = new Color(0f, 0f, 0f, 0.5f);
+                    shadow.effectDistance = new Vector2(0f, -4f);
+                }
+            }
         }
 
         private void OnDestroy()
@@ -54,7 +77,17 @@ namespace GameLimon.MainMenu
             }
 
             if (button != null)
+            {
                 button.interactable = unlocked;
+                Outline outline = button.GetComponent<Outline>();
+                if (outline == null)
+                    outline = button.gameObject.AddComponent<Outline>();
+                outline.effectColor = completed
+                    ? new Color(0.35f, 0.95f, 0.72f, 0.9f)
+                    : new Color(0.95f, 0.78f, 0.38f, 0.75f);
+                outline.effectDistance = new Vector2(2.5f, -2.5f);
+                outline.useGraphicAlpha = true;
+            }
         }
 
         private void HandleClick()
