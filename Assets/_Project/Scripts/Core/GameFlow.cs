@@ -152,7 +152,7 @@ namespace GameLimon.Core
 
             if (ui != null)
             {
-                ui.ShowLoading("Загрузка");
+                ui.ShowLoading("Загрузка...");
                 yield return ui.FadeTo(1f, fadeDuration);
             }
 
@@ -179,8 +179,8 @@ namespace GameLimon.Core
                 Debug.LogError($"[GameFlow] Сцена {next.SceneName} не загрузилась");
                 if (ui != null)
                 {
-                    yield return ui.FadeTo(0f, fadeDuration);
                     ui.HideLoading();
+                    yield return ui.FadeTo(0f, fadeDuration);
                 }
                 _isTransitioning = false;
                 yield break;
@@ -204,8 +204,11 @@ namespace GameLimon.Core
 
             if (ui != null)
             {
-                yield return ui.FadeTo(0f, fadeDuration);
+                // Даём надписи «Загрузка...» показаться хотя бы мгновение даже
+                // при очень быстрой загрузке, затем открываем сцену.
+                yield return new WaitForSecondsRealtime(0.15f);
                 ui.HideLoading();
+                yield return ui.FadeTo(0f, fadeDuration);
             }
 
             _isTransitioning = false;

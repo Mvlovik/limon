@@ -283,7 +283,7 @@ namespace GameLimon.MainMenu
             // Запускаем через Boot, иначе в игровой сцене не будет GameRoot, игрока и UI.
             MenuLaunchRequest.Request(entry.sceneId);
             if (GameRoot.Instance != null && GameRoot.Instance.UI != null)
-                GameRoot.Instance.UI.ShowLoading("Загрузка");
+                GameRoot.Instance.UI.ShowLoading("Загрузка...");
             SceneManager.LoadScene(bootSceneName, LoadSceneMode.Single);
         }
 

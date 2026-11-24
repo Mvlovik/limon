@@ -76,7 +76,7 @@ namespace GameLimon.UI
         public Coroutine FadeOut() => FadeTo(1f, defaultFadeDuration);
         public Coroutine FadeIn() => FadeTo(0f, defaultFadeDuration);
 
-        public void ShowLoading(string message = "Загрузка")
+        public void ShowLoading(string message = "Загрузка...")
         {
             BuildLoadingPanel();
             if (_loadingLabel != null)
@@ -118,9 +118,9 @@ namespace GameLimon.UI
             GameObject labelObject = new GameObject("LoadingLabel");
             labelObject.transform.SetParent(panel.transform, false);
             _loadingLabel = labelObject.AddComponent<Text>();
-            _loadingLabel.text = "Загрузка";
+            _loadingLabel.text = "Загрузка...";
             _loadingLabel.alignment = TextAnchor.MiddleCenter;
-            _loadingLabel.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _loadingLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             _loadingLabel.fontSize = 42;
             _loadingLabel.fontStyle = FontStyle.Bold;
             _loadingLabel.color = new Color(0.78f, 0.96f, 0.94f, 1f);
