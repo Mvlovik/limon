@@ -1,28 +1,19 @@
-﻿using System.Collections;
+using System.Collections;
 using GameLimon.Companions;
 using GameLimon.Core;
 using GameLimon.Player;
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.Playables;
 
 namespace GameLimon.Story
 {
     /// <summary>
-    /// Scene 4 cinematic: trigger -> dialogue -> branch A -> shared finale.
-    /// The scene composition lives in A1_S04_UnderBridge; this component only drives
-    /// the flow and swaps staging groups. Timeline/Cinemachine handle all camera work.
+    /// Stages the under-bridge sequence, including its interactive choice and shared ending.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RustamBridgeCutscene : SceneCutscene
     {
         private const string PlayerTag = "Player";
-
-        [Header("Timelines")]
-        [SerializeField] private PlayableDirector introDirector;
-        [SerializeField] private PlayableDirector branchADirector;
-        [SerializeField] private PlayableDirector aftermathDirector;
-        [SerializeField] private PlayableDirector finaleDirector;
 
         [Header("Staging marks")]
         [SerializeField] private Transform playerIntroMark;
@@ -44,6 +35,9 @@ namespace GameLimon.Story
 
         [Header("Finale")]
         [SerializeField] private GameObject finaleProps;
+        [SerializeField] private GameObject handPrefab;
+        [SerializeField] private GameObject fireEffectPrefab;
+        [SerializeField] private Material childSleeveMaterial;
 
         [Header("Objects hidden for the duration")]
         [SerializeField] private GameObject[] hideDuringCutscene;
@@ -65,29 +59,33 @@ namespace GameLimon.Story
         [SerializeField] private AudioClip shootClip;
         [SerializeField] private AudioClip ringingClip;
         [SerializeField] private AudioClip heartbeatClip;
+        [SerializeField] private AudioClip sadTheme;
+        [SerializeField] private AudioClip strainedVoice;
         [SerializeField, Range(0f, 1f)] private float shootVolume = 0.9f;
         [SerializeField, Range(0f, 1f)] private float ringingVolume = 0.4f;
         [SerializeField, Range(0f, 1f)] private float heartbeatVolume = 0.7f;
-        [SerializeField, Min(1f)] private float shootoutDuration = 3.6f;
-        [SerializeField, Min(0f)] private float aftermathFadeIn = 1.8f;
-        [SerializeField, Min(0f)] private float aftermathFadeOut = 2.4f;
 
         private CutsceneOverlayUI _ui;
         private GameObject _player;
         private FirstPersonBody _playerBody;
         private GameObject _joe;
         private CompanionActor _joeCompanion;
-        private CinemachineCamera[] _shotCameras;
-        private string _desiredShot;
         private AudioSource _shootSourceA;
-        private CutsceneChoice _branchChoice;
-        private bool _thugsEscaped;
         private AudioSource _shootSourceB;
         private AudioSource _shootSourceC;
         private AudioSource _ringingSource;
         private AudioSource _heartbeatSource;
         private AudioSource _speechSource;
         private Coroutine _speechRoutine;
+        private AudioSource _musicSource;
+        private GameObject _heroPistol;
+        private Camera _shot;
+        private CinemachineBrain _brain;
+        private bool _brainWasEnabled;
+        private Vector2 _originalLens;
+        private Reach _captorHold;
+        private GameObject _campfire;
+        private Vector3 _bloodScale;
 
         private GameObject[] _fallActors;
         private Vector3[] _fallPositions;
@@ -104,6 +102,7 @@ namespace GameLimon.Story
 
             _ui = CutsceneOverlayUI.Create();
             _ui.HideAll();
+            GameRoot.Instance?.Audio?.StopMusic(.2f);
 
             _player = GameObject.FindGameObjectWithTag(PlayerTag);
             if (_player != null)
@@ -120,16 +119,20 @@ namespace GameLimon.Story
                 StopLocomotion(body);
 
                 if (playerIntroMark != null)
-                    _player.transform.SetPositionAndRotation(playerIntroMark.position, playerIntroMark.rotation);
+                    StagePlayer(playerIntroMark.position, playerIntroMark.rotation);
             }
 
             _joe = FindObjectByName("Joe");
             if (_joe != null)
             {
-                // Напарника НЕ глушим: катсцена теперь стартует сразу, и Джо
-                // спокойно доходит до своей точки уже внутри интро (движение
-                // и анимация шага продолжают работать).
                 _joeCompanion = _joe.GetComponent<CompanionActor>();
+                if (_joeCompanion != null)
+                    _joeCompanion.enabled = false;
+
+                StopLocomotion(_joe.transform);
+
+                if (joeIntroMark != null)
+                    _joe.transform.rotation = joeIntroMark.rotation;
             }
 
             RestoreStandingPoses();
@@ -137,336 +140,508 @@ namespace GameLimon.Story
             SetStandingCast(true);
             SetAftermath(false, true);
             SetHiddenState(true);
-            _thugsEscaped = false;
-            _branchChoice = CutsceneChoice.Wait;
-            _shotCameras = Object.FindObjectsByType<CinemachineCamera>(FindObjectsInactive.Include);
-            _desiredShot = null;
-
-            // Timeline-треки камер перехватывают CinemachineBrain и держат
-            // первый шот на весь клип (у интро это 11 с) — из-за этого камера
-            // «зависала». Отвязываем камерные треки: планы переключаем сами
-            // через приоритеты, а анимация/атмосфера таймлайнов продолжают играть.
-            DetachCameraTracks(introDirector);
-            DetachCameraTracks(branchADirector);
-            DetachCameraTracks(aftermathDirector);
-            DetachCameraTracks(finaleDirector);
 
             if (finaleProps != null)
                 finaleProps.SetActive(false);
 
-            Debug.Log("[BridgeCutscene] prepared");
-        }
+            _shot = GetComponent<Camera>();
+            _brain = GetComponent<CinemachineBrain>();
+            _brainWasEnabled = _brain != null && _brain.enabled;
+            if (_brain != null) _brain.enabled = false;
+            _originalLens = new Vector2(_shot.fieldOfView, _shot.nearClipPlane);
+            _shot.nearClipPlane = .035f;
 
-        private void Update()
-        {
-            // Timeline-треки камер при остановке возвращают приоритеты Cinemachine
-            // к состоянию на момент запуска и «откатывают» вручную выбранный план.
-            // Пока катсцена играет, удерживаем нужный шот каждый кадр.
-            if (IsPlaying && _desiredShot != null)
-                ApplyShot(_desiredShot);
+            Vector3 eye = FindObjectByName("CM_Shot_Approach").transform.position;
+            SetShot(LookAt(eye, ObservationAim()));
+            _shot.fieldOfView = 58f;
+            Debug.Log("[BridgeCutscene] prepared");
         }
 
         protected override IEnumerator PlayContent()
         {
-            StartCoroutine(EnsureLetterbox());
-            yield return new WaitForSecondsRealtime(0.2f);
+            Vector3 audience = ObservationAim();
+            Vector3 behindCorner = FindObjectByName("CM_Shot_Approach").transform.position;
+            Vector3 peekEye = FindObjectByName("CM_Shot_Nook").transform.position;
+            Pose peek = LookAt(peekEye, audience);
+            Pose cover = LookAt(behindCorner, audience);
+            _shot.fieldOfView = 58f;
+            SetShot(cover);
+            SetPlayerVisible(false);
+            SetIdleActors(true);
+            Transform guard = ResolveThugA().transform;
+            Transform speaker = ResolveBandit().transform;
+            Vector3 hostagePosition = rustamStanding.transform.position;
+            Vector3 towardCover = Vector3.ProjectOnPlane(peekEye - hostagePosition, Vector3.up).normalized;
+            Vector3 screenRight = Vector3.Cross(towardCover, Vector3.up);
+            Vector3 guardPosition = hostagePosition + screenRight * .62f + towardCover * .22f;
+            guardPosition.y = GroundAt(guardPosition);
+            guard.SetPositionAndRotation(guardPosition, FaceDirection(hostagePosition - guardPosition));
+            Vector3 speakerPosition = hostagePosition - screenRight * .88f + towardCover * .60f;
+            speakerPosition.y = GroundAt(speakerPosition);
+            speaker.SetPositionAndRotation(speakerPosition, FaceDirection(hostagePosition - speakerPosition));
+            _captorHold = Arm(guard.gameObject, "Left");
+            Transform captiveArm = Bone(rustamStanding, "RightArm");
+            if (captiveArm != null) _captorHold.Target = () => captiveArm.position - Vector3.up * .14f;
+            var fire = FindObjectByName("bonfire");
+            if (fire != null && fireEffectPrefab != null && _campfire == null)
+            {
+                _campfire = Instantiate(fireEffectPrefab, fire.transform.position + Vector3.up * .20f,
+                    Quaternion.identity, transform.parent);
+                _campfire.name = "Bridge cinematic fire";
+                var fireLight = _campfire.AddComponent<Light>();
+                fireLight.type = LightType.Point;
+                fireLight.color = new Color(1f, .39f, .13f);
+                fireLight.range = 4.3f;
+                fireLight.intensity = 2.25f;
+            }
+            yield return HoldCamera(cover, .42f, .21f);
+            yield return MoveCamera(peek, .80f, .36f);
+            Debug.Log("[BridgeCutscene] peek framed");
+            yield return HoldCamera(peek, 2.2f, .35f);
 
-            yield return PlayIntro();
+            // Entry belongs to the player. Stage Joe behind the camera before he is revealed.
+            if (Vector3.Distance(_joe.transform.position, joeIntroMark.position) > .35f)
+                _joe.transform.SetPositionAndRotation(joeIntroMark.position, joeIntroMark.rotation);
+            Vector3 joeEye = Face(_joe, joeIntroMark.position);
+            Vector3 listenEye = playerIntroMark.position;
+            Pose listen = ListenPose(listenEye, joeEye);
+            yield return MoveCamera(cover, .58f, .30f);
+            Quaternion towardJoe = FaceDirection(joeIntroMark.position - listenEye);
+            Quaternion oldYaw = _player.transform.rotation;
+            Quaternion joeYaw = _joe.transform.rotation;
+            Quaternion towardHero = FaceDirection(listenEye - _joe.transform.position);
+            yield return MoveCamera(listen, .82f, .18f, progress =>
+            {
+                _player.transform.rotation = Quaternion.Slerp(oldYaw, towardJoe, progress);
+                _joe.transform.rotation = Quaternion.Slerp(joeYaw, towardHero, progress);
+                _shot.fieldOfView = Mathf.Lerp(58f, 46f, progress);
+            },
+                () => SetPlayerVisible(true));
 
-            yield return BranchWait();
+            _player.GetComponent<PlayerLook>()?.LockCursor(true);
+            Debug.Log("[BridgeCutscene] listening framed");
+            _speechSource.transform.position = audience;
+            _speechSource.spatialBlend = .77f;
+            yield return PlayOffscreenLine("Рустам", "Я вам все рассказал еще тогда! Оставьте меня в покое!", .68f);
+            yield return PlayOffscreenLine("Бандит", "Не все, старик. Ты знаешь, кого мы ищем. Где он?", .82f);
 
+            CutsceneChoice choice = CutsceneChoice.Wait;
+            yield return _ui.ShowChoice(10f, selected => choice = selected);
+            StagePlayer(listenEye, towardJoe);
+            SetShot(listen);
+            Debug.Log($"[BridgeCutscene] choice: {choice}");
+
+            if (choice == CutsceneChoice.Act)
+                yield return PlayActBranch(cover, peek);
+            else
+                yield return PlayWaitBranch(cover, peek, audience);
+
+            yield return GunfireAndFade(peek, choice);
+            yield return PlayAftermath(peek);
             yield return PlayFinale();
-
-            // Ringing and heartbeat fade out during the final shot.
-            StartCoroutine(FadeLoop(_ringingSource, 0f, aftermathFadeOut));
-            yield return FadeLoop(_heartbeatSource, 0f, aftermathFadeOut);
 
             _ui.HideAll();
             _ui.DestroyOverlay();
             _ui = null;
+            StopAftermathAudio();
             Debug.Log("[BridgeCutscene] content finished");
         }
 
-        private IEnumerator EnsureLetterbox()
+        private Vector3 ObservationAim()
         {
-            if (_ui == null) yield break;
-            yield return _ui.SetLetterbox(true, 0.5f);
+            Vector3 center = Vector3.Lerp(rustamStanding.transform.position, ResolveBandit().transform.position, .5f);
+            return center + Vector3.up * 1.03f;
         }
 
-        private IEnumerator PlayIntro()
+        private IEnumerator PlayWaitBranch(Pose cover, Pose peek, Vector3 audience)
         {
-            SetIdleActors(true);
-            FocusCamera("CM_Shot_Approach");
-            PlayTimeline(introDirector);
-
-            yield return PlayTalkLine("Джо", "Тихо. Смотри туда.", 40f, 1.2f);
-
-            // [Камера поворачивается в сторону закутка у стены.]
-            // Камерные треки таймлайнов отвязаны в PrepareCutscene, поэтому
-            // план переключается сразу по репликам.
-            FocusCamera("CM_Shot_Nook");
-            yield return PlayTalkLine("Рустам", "Я вам все рассказал еще тогда! Оставьте меня в покое!", 45f, 0.9f);
-            yield return PlayTalkLine("Бандит", "Не все, старик. Ты знаешь, кого мы ищем. Где он?", 45f, 0.9f);
-
-            FocusCamera("CM_Shot_Approach");
-            yield return PlayTalkLine("Джо", "Ждем. Узнаем, что им нужно.", 40f, 1.3f);
-            Debug.Log("[BridgeCutscene] intro finished");
-        }
-
-        private IEnumerator BranchWait()
-        {
-            FocusCamera("CM_Shot_Wait");
-            PlayTimeline(branchADirector);
-            yield return PlayTalkLine("Джо", "Спокойно. Пусть выговорятся.", 40f, 0.9f);
-
-            // Выбор по сценарию: [Ждать] / [Действовать], 5 секунд, авто-выбор «Ждать».
-            _branchChoice = CutsceneChoice.Wait;
-            yield return _ui.ShowChoice("Что делать?", 5f, c => _branchChoice = c);
-
-            if (_branchChoice == CutsceneChoice.Act)
-                yield return PlayActBranch();
-            else
-                yield return PlayWaitBranch();
-
-            yield return PlayAftermath();
-
-            yield return PlayTalkLine("Рустам", "Слушай... тумбочка... у кровати... там подарок от твоего отца... посмотри...", 42f, 1.4f);
-            yield return PlayTalkLine("Джо", _thugsEscaped
-                ? "ГГ... ГГ! Иди сюда... Быстрее!"
-                : "ГГ! Сюда! Быстрее!", 40f, 1.0f);
-        }
-
-        /// <summary>Ветка А «Ждать»: бандит нервничает, Рустам кричит, Джо командует.</summary>
-        private IEnumerator PlayWaitBranch()
-        {
-            // Бандит с пистолетом начинает нервничать.
-            yield return new WaitForSecondsRealtime(1.4f);
-            yield return PlayTalkLine("Бандит", "У меня нет времени. Говори, или я те колено прострелю!", 48f, 0.7f);
-            yield return new WaitForSecondsRealtime(0.8f);
-            yield return PlayTalkLine("Рустам", "Не-ет! Подожди! Я не знаю...", 42f, 0.5f);
-
-            // Рустам кричит — Джо подаёт команду.
-            yield return PlayTalkLine("Рустам", "А-а-а!", 70f, 0.3f);
-            yield return PlayTalkLine("Джо", "Сейчас!", 40f, 0.3f);
-            yield return PlayTalkLine("ГГ и Джо", "ПОЛИЦИЯ! БРОСАЙТЕ ОРУЖИЕ!", 65f, 0.3f);
-
-            _thugsEscaped = false;
-            yield return GunfireAndFade();
-        }
-
-        /// <summary>Ветка Б «Действовать»: ГГ вырывается и спугивает бандитов — они уходят живыми.</summary>
-        private IEnumerator PlayActBranch()
-        {
-            _thugsEscaped = true;
-
-            // ГГ дёргается вперёд — резкий короткий «толчок» камеры.
-            yield return CameraFlinch();
-
-            yield return PlayTalkLine("Джо", "Стой, придурок! У них ствол!", 48f, 0.4f);
-
-            // QTE: жать кнопку, чтобы вырваться из хватки Джо.
-            bool brokeFree = false;
-            yield return _ui.RunQte("Вырвись!", 3f, 6, ok => brokeFree = ok);
-            if (!brokeFree)
-                yield return new WaitForSecondsRealtime(0.8f); // Вырывается с трудом — финал тот же.
-
-            yield return PlayTalkLine("ГГ", "ПОЛИЦИЯ! ОТПУСТИ ЕГО!", 60f, 0.4f);
-
-            yield return GunfireAndFade();
-
-            // По сценарию ветки Б бандиты уходят живыми.
-            yield return PlayTalkLine("Джо", "Твою мать! Они ушли! Ты их спугнул!", 45f, 1.0f);
-        }
-
-        /// <summary>Резкий короткий «дёрг» камеры — небольшая анимация рывка ГГ.</summary>
-        private IEnumerator CameraFlinch()
-        {
-            if (_ui != null)
-                StartCoroutine(_ui.Flash(0.25f));
-
-            Camera camera = Camera.main;
-            if (camera == null)
-                yield break;
-
-            float baseFov = camera.fieldOfView;
-            const float duration = 0.24f;
-            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            yield return PlayTalkLine("Дима", "Хорошо, будь на готове.", 52f, .56f);
+            SetPlayerVisible(false);
+            yield return MoveCamera(peek, 1.18f, .38f, progress => _shot.fieldOfView = Mathf.Lerp(46f, 58f, progress), null,
+                cover.position);
+            _speechSource.transform.position = audience;
+            _speechSource.spatialBlend = .22f;
+            yield return PlayTalkLine("Бандит", "У меня нет времени. Говори, или я те колено прострелю!", 48f, .60f, 1.5f);
+            if (strainedVoice != null)
             {
-                camera.fieldOfView = baseFov + Mathf.Sin(t / duration * Mathf.PI) * 6f;
-                yield return null;
+                StopSpeech();
+                _speechSource.volume = Mathf.Clamp01(speechVolume * 2f);
+                _speechSource.PlayOneShot(strainedVoice);
+                yield return _ui.PlayLine("Рустам", "А-а!", 48f, .72f);
+                _speechSource.Stop();
             }
-            camera.fieldOfView = baseFov;
+            else
+            {
+                yield return PlayTalkLine("Рустам", "А-а!", 48f, .72f, 1.65f);
+            }
+            _speechSource.spatialBlend = 0f;
+            yield return PlayTalkLine("Джо", "Сейчас!", 48f, .39f);
         }
 
-        private IEnumerator GunfireAndFade()
+        private IEnumerator PlayActBranch(Pose cover, Pose peek)
         {
-            Debug.Log("[BridgeCutscene] gunfire");
+            SetPlayerVisible(false);
+            PrepareHeroPistol();
+            if (_heroPistol != null) _heroPistol.SetActive(true);
+            _shot.fieldOfView = 58f;
+            yield return MoveCamera(peek, .64f, 1f, null, null, cover.position);
+        }
+
+        private IEnumerator GunfireAndFade(Pose resume, CutsceneChoice choice)
+        {
+            yield return Fade(1f, .18f);
             SetIdleActors(false);
-            StopDirector(introDirector);
-            StopDirector(branchADirector);
+            _captorHold = default;
+            if (_heroPistol != null) _heroPistol.SetActive(false);
+            int shots = choice == CutsceneChoice.Wait ? 4 : 3;
+            for (int i = 0; i < shots; i++)
+            {
+                PlayShoot(i);
+                yield return new WaitForSecondsRealtime(i == 1 ? .32f : .23f);
+            }
 
-            GameRoot root = GameRoot.Instance;
-
-            // Immediate blackout and gunfire instead of the white flash.
-            StartCoroutine(PlayShootout());
-            if (root != null && root.UI != null)
-                yield return root.UI.FadeTo(1f, 0.3f);
-            else
-                yield return new WaitForSecondsRealtime(0.3f);
-
-            float shootoutEnd = Time.unscaledTime + Mathf.Max(1f, shootoutDuration);
-            while (Time.unscaledTime < shootoutEnd)
-                yield return null;
-
-            // Ringing and heartbeat fade in and keep playing until the end of the scene.
-            StartCoroutine(FadeLoop(_ringingSource, ringingVolume, aftermathFadeIn));
-            StartCoroutine(FadeLoop(_heartbeatSource, heartbeatVolume, aftermathFadeIn));
-
-            // The same characters lie down at the body marks while the screen is black.
+            StartCoroutine(FadeLoop(_ringingSource, ringingVolume, .34f));
+            StartCoroutine(FadeLoop(_heartbeatSource, heartbeatVolume, .46f));
             LayDownAfterShot();
-
-            if (pistolInThugHand != null)
-                pistolInThugHand.SetActive(false);
-
-            yield return new WaitForSecondsRealtime(0.5f);
-
-            if (root != null && root.UI != null)
-                yield return root.UI.FadeTo(0f, 1.0f);
-
-            yield return new WaitForSecondsRealtime(0.4f);
+            if (pistolInThugHand != null) pistolInThugHand.SetActive(false);
+            SetShot(resume);
+            yield return Fade(0f, .75f);
+            StartCoroutine(FadeLoop(_ringingSource, ringingVolume * .22f, 2.9f));
+            yield return new WaitForSecondsRealtime(.44f);
+            Debug.Log($"[BridgeCutscene] black-screen shots: {shots}");
         }
 
-        private IEnumerator PlayAftermath()
+        private IEnumerator PlayAftermath(Pose peek)
         {
-            if (aftermathDirector != null)
-            {
-                FocusCamera("CM_Shot_Aftermath");
-                PlayTimeline(aftermathDirector);
-                yield return new WaitForSecondsRealtime(1.0f);
-            }
-            else
-            {
-                yield return new WaitForSecondsRealtime(1.0f);
-            }
+            Transform rustam = rustamStanding.transform;
+            Transform nearMark = FindObjectByName("CM_Shot_Death").transform;
+            Vector3 viewer = Vector3.ProjectOnPlane(nearMark.position - rustam.position, Vector3.up).normalized;
+            Quaternion rollLeft = rustam.rotation * Quaternion.Euler(0f, -64f, 0f);
+            Quaternion rollRight = rustam.rotation * Quaternion.Euler(0f, 64f, 0f);
+            rustam.rotation = Vector3.Dot(rollLeft * Vector3.forward, viewer) < Vector3.Dot(rollRight * Vector3.forward, viewer)
+                ? rollLeft : rollRight;
+            Transform firstShoulder = Bone(rustamStanding, "LeftArm");
+            Transform secondShoulder = Bone(rustamStanding, "RightArm");
+            Vector3 shoulder = firstShoulder != null && secondShoulder != null
+                ? Vector3.Distance(nearMark.position, firstShoulder.position) < Vector3.Distance(nearMark.position, secondShoulder.position)
+                    ? firstShoulder.position : secondShoulder.position
+                : Face(rustamStanding, rustamBody.transform.position) - rustam.up * .24f;
+            Vector3 towardCamera = Vector3.ProjectOnPlane(nearMark.position - shoulder, Vector3.up).normalized;
+            Vector3 lowEye = shoulder + towardCamera * .55f + Vector3.up * .42f;
+            Pose knees = LookAt(lowEye, shoulder);
+            Pose running = LookAt(knees.position + Vector3.up * .70f, shoulder);
+            yield return MoveCamera(running, 1.48f, 2.30f, via: peek.position + Vector3.forward * 1.65f);
+            yield return MoveCamera(knees, .43f, .56f);
+
+            Debug.Log("[BridgeCutscene] shoulder framed");
+            yield return PlayTalkLine("Рустам", "Слушай… тумбочка… у кровати… там подарок от твоего отца… посмотри…", 38f, 2.15f, animateSpeaker: false);
+            Vector3 callFrom = joeIntroMark.position + Vector3.up * 1.48f;
+            _speechSource.transform.position = callFrom;
+            _speechSource.spatialBlend = .72f;
+            if (_musicSource != null) StartCoroutine(FadeLoop(_musicSource, .18f, .62f));
+            yield return PlayTalkLine("Джо", "Дэн… Дэн! Иди сюда… Быстрее!", 46f, .8f);
+            yield return MoveCamera(LookAt(knees.position, callFrom), .43f, .70f);
+            yield return Fade(1f, .28f);
         }
 
         private IEnumerator PlayFinale()
         {
-            if (finaleProps != null)
-                finaleProps.SetActive(true);
-
-            if (_player != null && playerFinalMark != null)
-                _player.transform.SetPositionAndRotation(playerFinalMark.position, playerFinalMark.rotation);
-
-            // Joe остаётся у JoeIntro — в финальном кадре он за камерой.
-            // Раньше его переносили за спину ГГ, из-за чего в конце
-            // маршрута был заметный скачок.
-
-            Debug.Log("[BridgeCutscene] finale");
+            SetPlayerHeadVisible(true);
+            SetPlayerVisible(true);
             SetLightEnabled("RimLight_Warm", false);
-            FocusCamera("CM_Shot_Finale");
-            PlayTimeline(finaleDirector);
-            yield return WaitForTimeline(finaleDirector, 12.0f);
 
-            // Финальный кадр — игрушка. Удерживаем камеру последнего шота,
-            // иначе Cinemachine вернёт приоритеты к состоянию до Timeline.
-            FocusCamera("CM_Shot_Finale");
-            yield return _ui.SetLetterbox(false, 0.6f);
+            Vector3 feet = playerFinalMark.position;
+            Vector3 forward = Vector3.ProjectOnPlane(joeIntroMark.position - feet, Vector3.up).normalized;
+            feet += Vector3.Cross(forward, Vector3.up) * 1.15f;
+            feet.y = GroundAt(feet);
+            StagePlayer(feet, FaceDirection(forward));
+            StopLocomotion(_player.transform);
+            Vector3 originalBodyPosition = _playerBody != null ? _playerBody.transform.localPosition : Vector3.zero;
+            AlignBootsToGround(feet.y);
+            Vector3 face = Face(_player, feet);
+            _shot.fieldOfView = 49f;
+            Vector3 startingEye = feet + forward * 1.40f + Vector3.up * .12f;
+            Pose low = new Pose(startingEye, Quaternion.LookRotation(-forward) * Quaternion.Euler(-18f, 0f, 0f));
+            Pose stop = LookAt(feet + forward * .56f + Vector3.up * (face.y - feet.y), face);
+            SetShot(low);
+            StartCoroutine(FadeLoop(_ringingSource, ringingVolume * 1.35f, 5.5f));
+            StartCoroutine(Fade(0f, .48f));
+            yield return MoveCamera(stop, 2.35f, .22f);
+            Debug.Log("[BridgeCutscene] close-up framed");
+            yield return new WaitForSecondsRealtime(4f);
+
+            Transform toy = finaleProps != null ? finaleProps.transform.Find("ChildToy") : null;
+            Vector3 toyPoint = toy != null ? toy.position : stop.position + stop.rotation * Vector3.left;
+            toyPoint.y = GroundAt(toyPoint);
+            Pose floor = LookAt(stop.position, toyPoint + Vector3.up * .04f);
+            PrepareFinaleProps(floor, toyPoint);
+            if (finaleProps != null) finaleProps.SetActive(true);
+            yield return MoveCamera(floor, .47f, 0f);
+            SetPlayerVisible(false);
+            if (_playerBody != null) _playerBody.transform.localPosition = originalBodyPosition;
+            yield return SpreadBlood(1.25f);
+
+            GameRoot.Instance?.UI?.SetFade(1f);
+            Debug.Log("[BridgeCutscene] final cut to black");
+            yield return new WaitForSecondsRealtime(.48f);
         }
 
-        private void PlayTimeline(PlayableDirector director)
+        private void AlignBootsToGround(float groundHeight)
         {
-            if (director == null)
-                return;
+            if (_playerBody == null) return;
+            var skin = _playerBody.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skin == null || skin.sharedMesh == null) return;
 
-            StopDirector(introDirector);
-            StopDirector(branchADirector);
-            StopDirector(aftermathDirector);
-            StopDirector(finaleDirector);
+            var pose = new Mesh();
+            skin.BakeMesh(pose);
+            float soleHeight = float.PositiveInfinity;
+            foreach (Vector3 vertex in pose.vertices)
+                soleHeight = Mathf.Min(soleHeight, skin.transform.TransformPoint(vertex).y);
+            Destroy(pose);
 
-            director.time = 0;
-            director.Play();
+            if (!float.IsPositiveInfinity(soleHeight))
+                _playerBody.transform.position += Vector3.up * (groundHeight - soleHeight);
         }
 
-        private static void StopDirector(PlayableDirector director)
+        private void PrepareHeroPistol()
         {
-            if (director != null && director.state == PlayState.Playing)
-                director.Stop();
+            if (pistolInThugHand == null || _heroPistol != null) return;
+            _heroPistol = Instantiate(pistolInThugHand, _shot.transform, false);
+            _heroPistol.name = "Bridge cinematic pistol";
+            _heroPistol.transform.SetLocalPositionAndRotation(new Vector3(.22f, -.20f, .46f),
+                Quaternion.Euler(-9f, 59f, 5f));
+            foreach (Collider shape in _heroPistol.GetComponentsInChildren<Collider>(true))
+                shape.enabled = false;
+            foreach (Renderer part in _heroPistol.GetComponentsInChildren<Renderer>(true))
+                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
-        /// <summary>
-        /// Keep the last shot alive after a Timeline stops. Without this the
-        /// brain falls back to the highest-priority camera, which used to be
-        /// the opening shot.
-        /// </summary>
-        private void FocusCamera(string cameraName)
+        private Pose ListenPose(Vector3 hero, Vector3 joeEye)
         {
-            _desiredShot = cameraName;
-            ApplyShot(cameraName);
+            Vector3 heroEye = Face(_player, hero);
+            Vector3 midpoint = (heroEye + joeEye) * .5f;
+            Vector3 lookAcross = Vector3.ProjectOnPlane(joeEye - heroEye, Vector3.up).normalized;
+            Vector3 side = Vector3.Cross(Vector3.up, lookAcross);
+            if (Vector3.Dot(side, Vector3.forward) < 0f) side = -side;
+            return LookAt(midpoint + side * 1.54f - Vector3.up * .04f, midpoint + Vector3.up * .015f);
         }
 
-        private void ApplyShot(string cameraName)
+        private void StagePlayer(Vector3 position, Quaternion rotation)
         {
-            if (_shotCameras == null || _shotCameras.Length == 0)
-                _shotCameras = Object.FindObjectsByType<CinemachineCamera>(FindObjectsInactive.Include);
-
-            foreach (CinemachineCamera camera in _shotCameras)
-                if (camera != null)
-                    camera.Priority = camera.name == cameraName ? 100 : 0;
+            var controller = _player.GetComponent<CharacterController>();
+            bool enabled = controller != null && controller.enabled;
+            if (enabled) controller.enabled = false;
+            _player.transform.SetPositionAndRotation(position, rotation);
+            if (enabled) controller.enabled = true;
         }
 
-        /// <summary>
-        /// Отвязывает камерный трек таймлайна от CinemachineBrain. При пустом
-        /// биндинге CinemachineMixer.ProcessFrame просто ничего не делает —
-        /// камеры остаются под нашим управлением, а остальные треки работают.
-        /// </summary>
-        private static void DetachCameraTracks(PlayableDirector director)
+        private void SetPlayerVisible(bool visible)
         {
-            if (director == null || director.playableAsset == null)
-                return;
+            if (_playerBody != null) _playerBody.SetExternalView(!visible);
+        }
 
-            foreach (PlayableBinding output in director.playableAsset.outputs)
+        private void SetPlayerHeadVisible(bool visible)
+        {
+            if (_playerBody == null) return;
+            if (visible)
             {
-                if (output.outputTargetType == typeof(CinemachineBrain) && output.sourceObject != null)
-                    director.SetGenericBinding(output.sourceObject, null);
+                RestoreHeadScale(_playerBody.transform);
+                return;
+            }
+            var neck = Bone(_playerBody.gameObject, "Neck");
+            if (neck != null) neck.localScale = Vector3.one * .001f;
+        }
+
+        private static Transform Bone(GameObject actor, string name)
+        {
+            if (actor == null) return null;
+            var animator = actor.GetComponentInChildren<Animator>();
+            Transform root = animator != null ? animator.transform : actor.transform;
+            foreach (Transform part in root.GetComponentsInChildren<Transform>())
+                if (part.name == name || part.name.EndsWith(":" + name, System.StringComparison.Ordinal))
+                    return part;
+            return null;
+        }
+
+        private static Vector3 Face(GameObject actor, Vector3 fallback)
+        {
+            Transform head = Bone(actor, "Head");
+            return head != null ? head.position + actor.transform.up * .08f : fallback + Vector3.up * 1.62f;
+        }
+
+        private static Quaternion FaceDirection(Vector3 direction)
+        {
+            Vector3 flat = Vector3.ProjectOnPlane(direction, Vector3.up);
+            return flat.sqrMagnitude > .0001f ? Quaternion.LookRotation(flat) : Quaternion.identity;
+        }
+
+        private IEnumerator Fade(float alpha, float seconds)
+        {
+            var ui = GameRoot.Instance?.UI;
+            if (ui != null) yield return ui.FadeTo(alpha, seconds);
+            else yield return new WaitForSecondsRealtime(seconds);
+        }
+
+        private static Pose LookAt(Vector3 eye, Vector3 at) => new Pose(eye, Quaternion.LookRotation(at - eye));
+        private static float Ease(float t) => t * t * (3f - 2f * t);
+        private Pose CurrentShot => new Pose(_shot.transform.position, _shot.transform.rotation);
+        private void SetShot(Pose pose) => _shot.transform.SetPositionAndRotation(pose.position, pose.rotation);
+
+        private IEnumerator MoveCamera(Pose end, float duration, float handHeld, System.Action<float> update = null,
+            System.Action midpoint = null, Vector3? via = null)
+        {
+            Pose start = CurrentShot;
+            bool moved = false;
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float u = Ease(t / duration);
+                if (!moved && u > .55f) { midpoint?.Invoke(); moved = true; }
+                update?.Invoke(u);
+                Vector3 point = via.HasValue
+                    ? Vector3.Lerp(Vector3.Lerp(start.position, via.Value, u), Vector3.Lerp(via.Value, end.position, u), u)
+                    : Vector3.Lerp(start.position, end.position, u);
+                Pose pose = new Pose(point, Quaternion.Slerp(start.rotation, end.rotation, u));
+                SetShot(Shake(pose, t, handHeld * Mathf.Sin(Mathf.PI * t / duration)));
+                yield return null;
+            }
+            if (!moved) midpoint?.Invoke();
+            update?.Invoke(1f);
+            SetShot(end);
+        }
+
+        private IEnumerator HoldCamera(Pose basePose, float duration, float handHeld)
+        {
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                SetShot(Shake(basePose, t, handHeld));
+                yield return null;
+            }
+            SetShot(basePose);
+        }
+
+        private static Pose Shake(Pose pose, float t, float intensity)
+        {
+            float bob = Mathf.Sin(t * 17f) + .32f * Mathf.Sin(t * 23.9f + .32f);
+            float sway = Mathf.Sin(t * 8.9f + .6f);
+            var drift = new Vector3(.016f * sway, .022f * bob, .006f * Mathf.Sin(t * 10f)) * intensity;
+            return new Pose(pose.position + pose.rotation * drift,
+                pose.rotation * Quaternion.Euler(intensity * new Vector3(.75f * bob, .49f * sway, .85f * sway)));
+        }
+
+        private struct Reach
+        {
+            public Transform Upper, Lower, Hand;
+            public System.Func<Vector3> Target;
+            public bool Valid => Upper != null && Lower != null && Hand != null;
+
+            public void Apply()
+            {
+                if (!Valid || Target == null) return;
+                Vector3 destination = Target();
+                Vector3 toward = destination - Upper.position;
+                float upperLength = Vector3.Distance(Upper.position, Lower.position);
+                float lowerLength = Vector3.Distance(Lower.position, Hand.position);
+                if (toward.sqrMagnitude < .0001f || upperLength < .01f || lowerLength < .01f) return;
+                Vector3 axis = toward.normalized;
+                float reach = Mathf.Clamp(toward.magnitude, Mathf.Abs(upperLength - lowerLength) + .006f,
+                    upperLength + lowerLength - .006f);
+                float along = (upperLength * upperLength - lowerLength * lowerLength + reach * reach) / (2f * reach);
+                float bend = Mathf.Sqrt(Mathf.Max(0f, upperLength * upperLength - along * along));
+                Vector3 elbow = Upper.position + axis * along +
+                    Vector3.ProjectOnPlane(Vector3.down + .3f * Upper.right, axis).normalized * bend;
+                Upper.rotation = Quaternion.FromToRotation(Lower.position - Upper.position, elbow - Upper.position) * Upper.rotation;
+                Lower.rotation = Quaternion.FromToRotation(Hand.position - Lower.position, destination - Lower.position) * Lower.rotation;
             }
         }
+
+        private static Reach Arm(GameObject actor, string side) => new Reach
+        {
+            Upper = Bone(actor, side + "Arm"),
+            Lower = Bone(actor, side + "ForeArm"),
+            Hand = Bone(actor, side + "Hand")
+        };
+
+        private void LateUpdate()
+        {
+            if (!IsPlaying) return;
+            _captorHold.Apply();
+        }
+
+        private static float GroundAt(Vector3 point) =>
+            TryGetGround(point, out Vector3 hit, out _) ? hit.y : point.y;
+
+        private void PrepareFinaleProps(Pose floor, Vector3 toyPoint)
+        {
+            if (finaleProps == null) return;
+            Transform hand = finaleProps.transform.Find("ChildHand");
+            Transform toy = finaleProps.transform.Find("ChildToy");
+            Transform mark = finaleProps.transform.Find("Blood_Finale");
+            Transform light = finaleProps.transform.Find("FinaleRevealLight");
+            Vector3 handPoint = hand != null ? hand.position : toyPoint;
+            handPoint.y = GroundAt(handPoint);
+            if (toy != null) toy.position = toyPoint + Vector3.up * .014f;
+            if (hand != null)
+            {
+                Vector3 towardToy = Vector3.ProjectOnPlane(toyPoint - handPoint, Vector3.up).normalized;
+                hand.SetPositionAndRotation(handPoint + Vector3.up * .022f, Quaternion.LookRotation(Vector3.up, towardToy));
+                if (hand.GetComponentInChildren<Renderer>(true) == null && handPrefab != null)
+                {
+                    GameObject visual = Instantiate(handPrefab, hand);
+                    visual.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    visual.transform.localScale *= 1.15f;
+                    AttachSleeve(hand, new Vector3(-.01f, -.21f, .055f), new Vector3(.056f, .215f, .054f), "Child sleeve cuff");
+                    foreach (Collider body in visual.GetComponentsInChildren<Collider>(true)) body.enabled = false;
+                }
+            }
+            if (mark != null)
+            {
+                if (_bloodScale == Vector3.zero) _bloodScale = mark.localScale;
+                mark.position = Vector3.Lerp(handPoint, toyPoint, .025f) + Vector3.up * .019f;
+                mark.localScale = new Vector3(_bloodScale.x * .18f, _bloodScale.y, _bloodScale.z * .18f);
+            }
+            if (light != null)
+                light.SetPositionAndRotation(Vector3.Lerp(handPoint, toyPoint, .52f) + Vector3.up * .43f, floor.rotation);
+        }
+
+        private void AttachSleeve(Transform wrist, Vector3 center, Vector3 size, string label)
+        {
+            if (childSleeveMaterial == null) return;
+            GameObject sleeve = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            sleeve.name = label;
+            sleeve.transform.SetParent(wrist, false);
+            sleeve.transform.localPosition = center;
+            sleeve.transform.localScale = size;
+            sleeve.GetComponent<Collider>().enabled = false;
+            sleeve.GetComponent<Renderer>().sharedMaterial = childSleeveMaterial;
+        }
+
+        private IEnumerator SpreadBlood(float duration)
+        {
+            Transform mark = finaleProps != null ? finaleProps.transform.Find("Blood_Finale") : null;
+            if (mark == null) { yield return new WaitForSecondsRealtime(duration); yield break; }
+            Vector3 final = _bloodScale;
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float size = Mathf.Lerp(.18f, .86f, Mathf.Sqrt(t / duration));
+                mark.localScale = new Vector3(final.x * size, final.y, final.z * size);
+                yield return null;
+            }
+            mark.localScale = new Vector3(final.x * .86f, final.y, final.z * .86f);
+        }
+
+        private IEnumerator PlayOffscreenLine(string speaker, string text, float gain)
+        {
+            float seconds = EstimateLineDuration(text, 40f, .60f);
+            PlaySpeech(speaker, seconds, gain);
+            yield return new WaitForSecondsRealtime(seconds + .16f);
+        }
+
 
         private static void SetLightEnabled(string lightName, bool enabled)
         {
             var go = GameObject.Find(lightName);
             var light = go != null ? go.GetComponent<Light>() : null;
             if (light != null) light.enabled = enabled;
-        }
-
-        private IEnumerator WaitForTimeline(PlayableDirector director, float fallbackHold = 0f)
-        {
-            if (director == null)
-            {
-                if (fallbackHold > 0f)
-                    yield return new WaitForSecondsRealtime(fallbackHold);
-                yield break;
-            }
-
-            // Ждём не «пока director Playing», а не дольше длительности клипа:
-            // битый или зацикленный трек иначе держит катсцену вечно и она
-            // никогда не доходит до затемнения.
-            float duration = director.duration > 0.0 ? (float)director.duration : 0f;
-            float limit = Mathf.Max(fallbackHold, duration + 2f);
-            float end = Time.unscaledTime + limit;
-
-            while (director.state == PlayState.Playing && Time.unscaledTime < end)
-                yield return null;
-
-            if (director.state == PlayState.Playing)
-            {
-                Debug.LogWarning("[BridgeCutscene] Timeline не завершился вовремя — останавливаю принудительно.");
-                director.Stop();
-            }
-
-            // Не ждём лишний кадр: при остановке Timeline Cinemachine возвращает
-            // приоритеты камер к состоянию на момент запуска, и без немедленного
-            // FocusCamera следующего шота камера на мгновение «прыгает» назад.
         }
 
         private GameObject ResolveActor(GameObject assigned, string fallbackName)
@@ -520,27 +695,10 @@ namespace GameLimon.Story
         private void LayDownAfterShot()
         {
             LayDown(rustamStanding, rustamBody);
+            LayDown(ResolveThugA(), thugABody);
+            LayDown(ResolveBandit(), thugBBody);
 
-            if (_thugsEscaped)
-            {
-                // Ветка Б: бандиты ушли живыми — их тел на полу нет.
-                if (thugAStanding != null) thugAStanding.SetActive(false);
-                if (thugABody != null) thugABody.SetActive(false);
-
-                GameObject bandit = ResolveBandit();
-                if (bandit != null) bandit.SetActive(false);
-                if (thugBBody != null) thugBBody.SetActive(false);
-
-                if (pistolInThugHand != null)
-                    pistolInThugHand.SetActive(false);
-            }
-            else
-            {
-                LayDown(ResolveThugA(), thugABody);
-                LayDown(ResolveBandit(), thugBBody);
-            }
-
-            SetAftermath(false, !_thugsEscaped);
+            SetAftermath(false, true);
             PlaceBloodOnGround();
         }
 
@@ -691,14 +849,14 @@ namespace GameLimon.Story
             }
         }
 
-        private IEnumerator PlayTalkLine(string speaker, string text, float speed, float hold)
+        private IEnumerator PlayTalkLine(string speaker, string text, float speed, float hold, float gain = 1f, bool animateSpeaker = true)
         {
             float lineDuration = EstimateLineDuration(text, speed, hold);
 
-            if (talk != null)
+            if (animateSpeaker && talk != null)
                 talk.Speak(speaker, lineDuration);
 
-            PlaySpeech(speaker, lineDuration);
+            PlaySpeech(speaker, lineDuration, gain);
 
             yield return _ui.PlayLine(speaker, text, speed, hold);
 
@@ -706,16 +864,16 @@ namespace GameLimon.Story
                 talk.Silence();
         }
 
-        private void PlaySpeech(string speaker, float duration)
+        private void PlaySpeech(string speaker, float duration, float gain)
         {
             if (_speechSource == null || _speechSource.clip == null)
                 return;
 
             StopSpeech();
-            _speechRoutine = StartCoroutine(SpeechRoutine(speaker, duration));
+            _speechRoutine = StartCoroutine(SpeechRoutine(speaker, duration, Mathf.Clamp01(gain * speechVolume)));
         }
 
-        private IEnumerator SpeechRoutine(string speaker, float duration)
+        private IEnumerator SpeechRoutine(string speaker, float duration, float targetVolume)
         {
             _speechSource.pitch = SpeechPitch(speaker);
             float length = _speechSource.clip.length;
@@ -729,11 +887,11 @@ namespace GameLimon.Story
 
             for (float t = 0f; t < fadeIn; t += Time.unscaledDeltaTime)
             {
-                _speechSource.volume = Mathf.Lerp(0f, speechVolume, t / fadeIn);
+                _speechSource.volume = Mathf.Lerp(0f, targetVolume, t / fadeIn);
                 yield return null;
             }
 
-            _speechSource.volume = speechVolume;
+            _speechSource.volume = targetVolume;
 
             float elapsed = fadeIn;
             while (elapsed < holdEnd)
@@ -744,7 +902,7 @@ namespace GameLimon.Story
 
             for (float t = 0f; t < fadeOut; t += Time.unscaledDeltaTime)
             {
-                _speechSource.volume = Mathf.Lerp(speechVolume, 0f, t / fadeOut);
+                _speechSource.volume = Mathf.Lerp(targetVolume, 0f, t / fadeOut);
                 yield return null;
             }
 
@@ -774,7 +932,7 @@ namespace GameLimon.Story
             {
                 case "\u0420\u0443\u0441\u0442\u0430\u043c": return 0.82f;
                 case "\u0411\u0430\u043d\u0434\u0438\u0442": return 1.14f;
-                case "\u0413\u0413 \u0438 \u0414\u0436\u043e": return 1.06f;
+                case "\u0414\u0438\u043C\u0430 \u0438 \u0414\u0436\u043e": return 1.06f;
                 default: return 1f;
             }
         }
@@ -810,7 +968,18 @@ namespace GameLimon.Story
             SetHiddenState(false);
 
             if (_playerBody != null)
+            {
+                SetPlayerVisible(true);
+                SetPlayerHeadVisible(true);
                 _playerBody.enabled = true;
+            }
+
+            if (_brain != null) _brain.enabled = _brainWasEnabled;
+            if (_shot != null)
+            {
+                _shot.fieldOfView = _originalLens.x;
+                _shot.nearClipPlane = _originalLens.y;
+            }
 
             if (_joeCompanion != null)
                 _joeCompanion.enabled = true;
@@ -825,7 +994,8 @@ namespace GameLimon.Story
             StopSpeech();
 
             if (_ui != null)
-                _ui.HideAll();
+                _ui.DestroyOverlay();
+            _ui = null;
         }
 
         private void EnsureAudio()
@@ -847,6 +1017,7 @@ namespace GameLimon.Story
             if (_ringingSource == null) _ringingSource = CreateAudioSource("EarRinging", 1f, true, ringingClip, 0f);
             if (_heartbeatSource == null) _heartbeatSource = CreateAudioSource("Heartbeat", 1f, true, heartbeatClip, 0f);
             if (_speechSource == null) _speechSource = CreateAudioSource("DialogueSpeech", 1f, true, speechClip, 0f);
+            if (_musicSource == null) _musicSource = CreateAudioSource("Bridge sad theme", 1f, false, sadTheme, 0f);
         }
 
         private AudioSource CreateAudioSource(string name, float pitch, bool loop, AudioClip clip, float volume)
@@ -862,18 +1033,6 @@ namespace GameLimon.Story
             source.clip = clip;
             source.volume = volume;
             return source;
-        }
-
-        private IEnumerator PlayShootout()
-        {
-            float end = Time.unscaledTime + Mathf.Max(1f, shootoutDuration);
-            int shot = 0;
-
-            while (Time.unscaledTime < end)
-            {
-                PlayShoot(shot++);
-                yield return new WaitForSecondsRealtime(Random.Range(0.07f, 0.26f));
-            }
         }
 
         private void PlayShoot(int index)
@@ -920,6 +1079,8 @@ namespace GameLimon.Story
 
         private void StopAftermathAudio()
         {
+            if (_musicSource != null) _musicSource.Stop();
+            if (_campfire != null) Destroy(_campfire);
             if (_ringingSource != null)
             {
                 _ringingSource.Stop();

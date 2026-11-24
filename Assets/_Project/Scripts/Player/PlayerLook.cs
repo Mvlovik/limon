@@ -65,6 +65,8 @@ namespace GameLimon.Player
         /// обзор мышью и запись позы камеры приостановлены.
         /// </summary>
         public bool PoseLocked { get; set; }
+        internal float? SceneMaxDownPitch { get; set; }
+        private float MaxDownPitch => Mathf.Min(maxPitch, SceneMaxDownPitch ?? maxPitch);
 
         private void Start()
         {
@@ -120,7 +122,7 @@ namespace GameLimon.Player
                 float yaw = transform.localEulerAngles.y + look.x;
                 transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
 
-                _pitch = Mathf.Clamp(_pitch - look.y, minPitch, maxPitch);
+                _pitch = Mathf.Clamp(_pitch - look.y, minPitch, MaxDownPitch);
                 cameraTransform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
             }
 

@@ -48,6 +48,10 @@ namespace GameLimon.Staging
             bool cameraWasEnabled = playerCamera != null && playerCamera.enabled;
             bool listenerWasEnabled = listener != null && listener.enabled;
 
+            var bodies = player.GetComponentsInChildren<FirstPersonBody>(true);
+            foreach (FirstPersonBody body in bodies)
+                body.HideForCutscene();
+
             IsLookingAtWindow = true;
             if (motor != null) motor.SetControlLocked(true);
             if (look != null) look.PoseLocked = true;
@@ -83,6 +87,8 @@ namespace GameLimon.Staging
                 if (controller != null) controller.enabled = controllerWasEnabled;
                 if (look != null) look.PoseLocked = wasPoseLocked;
                 if (motor != null) motor.SetControlLocked(wasControlLocked);
+                foreach (FirstPersonBody body in bodies)
+                    if (body != null) body.RestoreAfterCutscene();
                 IsLookingAtWindow = false;
             }
         }

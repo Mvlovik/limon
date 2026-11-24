@@ -10,8 +10,8 @@ namespace GameLimon.Staging
     /// Первая сцена второго акта начинается со сновидения: игрок ещё «спит»,
     /// камеру держат сценовые камеры, а управление и тело игрока не должны
     /// участвовать. Игрок живёт в Boot (как и в первом акте), поэтому этот
-    /// компонент берёт именно его и возвращает в кадр по сигналу пробуждения
-    /// из таймлайна.
+    /// компонент возвращает его камеру и управление по сигналу пробуждения.
+    /// Модель скрыта до выхода из сцены, которая целиком идёт от первого лица.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class Act2WakeBinder : MonoBehaviour
@@ -25,8 +25,10 @@ namespace GameLimon.Staging
         private GameObject _player;
         private PlayerMotor _motor;
         private PlayerLook _look;
+        private PlayerInteractor _interactor;
+        private bool _restoreInteractor;
         private CharacterController _controller;
-        private FirstPersonBody _body;
+        private readonly List<Renderer> _hiddenPlayerRenderers = new List<Renderer>();
         private readonly List<Camera> _playerCameras = new List<Camera>();
         private readonly List<AudioListener> _playerListeners = new List<AudioListener>();
         private bool _bound;
@@ -45,7 +47,10 @@ namespace GameLimon.Staging
             _motor = _player.GetComponent<PlayerMotor>();
             _look = _player.GetComponent<PlayerLook>();
             _controller = _player.GetComponent<CharacterController>();
-            _body = _player.GetComponentInChildren<FirstPersonBody>(true);
+            _interactor = _player.GetComponent<PlayerInteractor>();
+            _restoreInteractor = _interactor != null && _interactor.enabled;
+            if (_restoreInteractor)
+                _interactor.enabled = false;
             _bound = true;
 
             // Сон: управление забрано, камера и слушатель игрока не участвуют —
@@ -55,7 +60,12 @@ namespace GameLimon.Staging
             if (_look != null)
                 _look.PoseLocked = true;
 
-            _body?.SetExternalView(true);
+            foreach (Renderer renderer in _player.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!renderer.enabled) continue;
+                _hiddenPlayerRenderers.Add(renderer);
+                renderer.enabled = false;
+            }
 
             foreach (Camera camera in _player.GetComponentsInChildren<Camera>(true))
             {
@@ -120,7 +130,21 @@ namespace GameLimon.Staging
                 _look.LockCursor(true);
             }
 
-            _body?.SetExternalView(false);
+            RestoreInteraction();
+        }
+
+        private void RestoreInteraction()
+        {
+            if (!_restoreInteractor || _interactor == null) return;
+            _interactor.enabled = true;
+            _restoreInteractor = false;
+        }
+
+        private void OnDestroy()
+        {
+            RestoreInteraction();
+            foreach (Renderer renderer in _hiddenPlayerRenderers)
+                if (renderer != null) renderer.enabled = true;
         }
 
         /// <summary>Для сигналов, которые раньше вызывали PlayerLook.LockCursor у сценового игрока.</summary>

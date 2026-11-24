@@ -3,6 +3,7 @@ using GameLimon.Core;
 using GameLimon.Interaction;
 using GameLimon.Player;
 using UnityEngine;
+using GameLimon.Story;
 
 namespace GameLimon.Staging
 {
@@ -39,7 +40,18 @@ namespace GameLimon.Staging
         private readonly List<AudioListener> _listeners = new List<AudioListener>();
         private bool _bound;
         private bool _wentOutside;
-        private bool _advancedToSceneThree;
+
+        private const string LitterStep = "A2_S02_Litter";
+        private static readonly string[] LitterFlags =
+        {
+            "A2_S02_Litter_1",
+            "A2_S02_Litter_2",
+            "A2_S02_Litter_3",
+            "A2_S02_Litter_4",
+            "A2_S02_Litter_5",
+            "A2_S02_Litter_6",
+            "A2_S02_Litter_7"
+        };
 
         private void Start()
         {
@@ -86,11 +98,14 @@ namespace GameLimon.Staging
 
         private void Update()
         {
-            if (!_bound)
-                return;
-
             GameState state = GameRoot.Instance != null ? GameRoot.Instance.State : null;
             if (state == null)
+                return;
+
+            if (QuestDirector.IsStepActive(LitterStep))
+                CompleteLitterStep(state);
+
+            if (!_bound)
                 return;
 
             if (!_wentOutside && state.GetFlag(streetExitFlag))
@@ -100,12 +115,14 @@ namespace GameLimon.Staging
                     streetRoot.SetActive(true);
                 Teleport(apartmentToStreet);
             }
+        }
 
-            if (!_advancedToSceneThree && state.GetFlag("A2_S02_Ride"))
-            {
-                _advancedToSceneThree = true;
-                GameRoot.Instance?.Flow?.CompleteCurrentScene();
-            }
+        private static void CompleteLitterStep(GameState state)
+        {
+            foreach (string flag in LitterFlags)
+                if (!state.GetFlag(flag)) return;
+
+            state.SetFlag(LitterStep, true);
         }
 
         /// <summary>Сигнал 3.78 с: вступление закончилось, игроку возвращают управление.</summary>
@@ -175,7 +192,10 @@ namespace GameLimon.Staging
 
         public void TeleportCleanupStart() => Teleport(cleanupStart);
 
-        public void TeleportStopAfterSteppingBack() => Teleport(stopAfterSteppingBack);
+        public void TeleportStopAfterSteppingBack()
+        {
+            Teleport(stopAfterSteppingBack);
+        }
 
         /// <summary>Совместимость со старым сигналом «PlayerCamera Animator.enabled».</summary>
         public void SetCameraAnimatorEnabled(bool value) { }

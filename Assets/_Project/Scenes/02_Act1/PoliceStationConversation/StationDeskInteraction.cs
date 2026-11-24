@@ -261,13 +261,13 @@ namespace GameLimon.Staging
 
             yield return WaitForClip(state, 3.22f);
             dialogueActive = true;
-            yield return SpeakUntil(state, "Джо: Привет, ГГ. Ты как?", 5.16f);
+            yield return SpeakUntil(state, "Джо: Привет, Дима. Ты как?", 5.16f);
             yield return WaitForClip(state, 5.25f);
-            yield return SpeakUntil(state, "ГГ: Привет Джо, все хорошо, кстати я пришел первым, с тебя пончики.", 10.43f);
+            yield return SpeakUntil(state, "Дима: Привет Джо, все хорошо, кстати я пришел первым, с тебя пончики.", 10.43f);
             yield return WaitForClip(state, 10.75f);
             yield return SpeakUntil(state, "Джо: Ахах, думал забудешь, ну ничего, они уже в машине", 14.43f);
             yield return WaitForClip(state, 14.75f);
-            yield return SpeakUntil(state, "ГГ: Раз ты пришел, давай сразу за дело, поехали в патруль, сегодня у нас Меридиан-", RingStart);
+            yield return SpeakUntil(state, "Дима: Раз ты пришел, давай сразу за дело, поехали в патруль, сегодня у нас Меридиан-", RingStart);
             yield return WaitForClip(state, RingStart);
             captions.ShowImmediate("[Звонит телефон]");
             yield return WaitForClip(state, PhoneAnswered);
@@ -275,11 +275,11 @@ namespace GameLimon.Staging
 
             // Keep the existing handset hold animated while the player chooses and reads.
             var hold = StartCoroutine(HoldHandset(state));
-            yield return Speak("Рита: ГГ, это ты, только трубку не бросай, ладно?");
+            yield return Speak("Рита: Дима, это ты, только трубку не бросай, ладно?");
             yield return new WaitForSecondsRealtime(.55f);
-            yield return Speak("ГГ: Рита.");
+            yield return Speak("Дима: Рита.");
             yield return Speak("Рита: Они его забрали. Рустама. Прямо сейчас. Он даже куртку не взял.");
-            yield return Speak("ГГ: Кто забрал. Рита, кто?!");
+            yield return Speak("Дима: Кто забрал. Рита, кто?!");
             yield return Speak("Рита: Наши. Четверо… нет, трое. Молодые совсем. Один сказал: \"Дядя Рустам, пошли, поговорить надо\". Как будто они его знают, двое с ним пошло.");
 
             int choice = 0;
@@ -300,7 +300,7 @@ namespace GameLimon.Staging
 
             captions.Hide();
             GameRoot.Instance?.State.SetChoice("A1_S03_RitaQuestion", choice == 1 ? "Mishka" : "LastMan");
-            yield return Speak("ГГ: " + (choice == 1 ? FirstChoice : SecondChoice));
+            yield return Speak("Дима: " + (choice == 1 ? FirstChoice : SecondChoice));
             if (choice == 1)
             {
                 yield return Speak("Рита: …Мишка? Мишка, стой! Я кому сказала — в комнату!..");
@@ -308,11 +308,11 @@ namespace GameLimon.Staging
             }
             else
             {
-                yield return Speak("Рита: Остался. Внизу на лавке сидит, курит. Сказал, что подождёт. Кого он ждёт, ГГ?");
+                yield return Speak("Рита: Остался. Внизу на лавке сидит, курит. Сказал, что подождёт. Кого он ждёт, Дима?");
             }
 
-            yield return Speak("Рита: Они не били его, ГГ. Они смеялись. И он пошёл. Сам пошёл, понимаешь?");
-            yield return Speak("ГГ: Я понял кто это и знаю где собираются... Запрись... На цепочку... Не открывай — даже если это я. Едем");
+            yield return Speak("Рита: Они не били его, Дима. Они смеялись. И он пошёл. Сам пошёл, понимаешь?");
+            yield return Speak("Дима: Я понял кто это и знаю где собираются... Запрись... На цепочку... Не открывай — даже если это я. Едем");
             StopCoroutine(hold);
             dialogueActive = false;
             state.time = PhoneReturn;

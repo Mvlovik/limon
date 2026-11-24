@@ -54,6 +54,12 @@ namespace GameLimon.Player
                 _input.InteractPressed += OnInteractPressed;
         }
 
+        private void OnDisable()
+        {
+            _pending = null;
+            SetFocus(null);
+        }
+
         private void OnDestroy()
         {
             if (_input != null)
@@ -82,7 +88,7 @@ namespace GameLimon.Player
 
         private void OnInteractPressed()
         {
-            if (Current != null && Current.CanInteract)
+            if (isActiveAndEnabled && Current != null && Current.CanInteract)
                 Current.Interact(gameObject);
         }
 

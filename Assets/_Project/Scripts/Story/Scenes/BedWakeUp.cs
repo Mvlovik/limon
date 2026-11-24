@@ -35,10 +35,12 @@ namespace GameLimon.Story
         [SerializeField] private float standUpDuration = 1.2f;
 
         [SerializeField] private Transform standPoint;
+        [SerializeField] private bool wakeOnInteractPress;
         [SerializeField] private CanvasGroup wakeShade;
         [SerializeField, Range(0f, 1f)] private float closedEyesOpacity = 0.84f;
         [SerializeField, Min(0.01f)] private float brightenDuration = 1.4f;
         [SerializeField] private bool hideFirstPersonBodyDuringWake;
+        [SerializeField, Range(0f, 85f)] private float maxDownPitchAfterWake;
         [SerializeField, Range(0f, 1f)] private float wakeCameraSway;
         [SerializeField, Min(0f)] private float wakeBreathDuration;
 
@@ -55,7 +57,9 @@ namespace GameLimon.Story
         private PlayerMotor _motor;
         private PlayerLook _look;
         private CharacterController _controller;
-        private FirstPersonBody _hiddenBody;
+        private FirstPersonBody[] _hiddenBodies;
+        private InputReader _wakeInput;
+        private ThoughtUI _wakePrompt;
 
         private bool _lying;
         private bool _waking;
@@ -73,9 +77,13 @@ namespace GameLimon.Story
 
         private void Start() => StartCoroutine(PlaceWhenReady());
 
+        private void OnDisable() => StopListeningForWake();
+
         private void OnDestroy()
         {
             RestoreFirstPersonBody();
+            if (_look != null && maxDownPitchAfterWake > 0f)
+                _look.SceneMaxDownPitch = null;
             SceneLoader loader = GameRoot.Instance != null ? GameRoot.Instance.Loader : null;
             if (loader != null)
                 loader.SceneLoaded -= OnSceneLoaded;
@@ -101,6 +109,10 @@ namespace GameLimon.Story
             if (_lying || _waking)
                 return;
 
+            ResolvePlayer();
+            if (_look != null && maxDownPitchAfterWake > 0f)
+                _look.SceneMaxDownPitch = maxDownPitchAfterWake;
+
             GameState state = GameRoot.Instance != null ? GameRoot.Instance.State : null;
             if (state != null && !string.IsNullOrEmpty(flag) && state.GetFlag(flag))
             {
@@ -108,7 +120,6 @@ namespace GameLimon.Story
                 return; // уже просыпались — повторно не укладываем
             }
 
-            ResolvePlayer();
             Collider bedCollider = ResolveBed();
 
             if (_player == null || bedCollider == null || _camera == null)
@@ -134,8 +145,9 @@ namespace GameLimon.Story
 
             if (hideFirstPersonBodyDuringWake)
             {
-                _hiddenBody = _player.GetComponentInChildren<FirstPersonBody>();
-                _hiddenBody?.SetExternalView(true);
+                _hiddenBodies = _player.GetComponentsInChildren<FirstPersonBody>(true);
+                foreach (FirstPersonBody body in _hiddenBodies)
+                    body.HideForCutscene();
             }
 
             if (_controller != null)
@@ -151,7 +163,37 @@ namespace GameLimon.Story
                 _look.PoseLocked = true;
 
             _lying = true;
+            if (wakeOnInteractPress && GameRoot.Instance != null)
+            {
+                _wakeInput = GameRoot.Instance.Input;
+                if (_wakeInput != null)
+                {
+                    _wakeInput.InteractPressed += OnWakePressed;
+                    _wakePrompt = ThoughtUI.Create(GameRoot.Instance.UI?.Canvas);
+                    _wakePrompt?.ShowImmediate(InteractionPrompt);
+                }
+            }
             Debug.Log("[BedWakeUp] Нажмите E, чтобы проснуться.", this);
+        }
+
+        private void OnWakePressed()
+        {
+            if (Time.timeScale > 0f && CanInteract && _player != null)
+                Interact(_player.gameObject);
+        }
+
+        private void StopListeningForWake()
+        {
+            if (_wakeInput != null)
+                _wakeInput.InteractPressed -= OnWakePressed;
+            _wakeInput = null;
+
+            if (_wakePrompt != null)
+            {
+                _wakePrompt.Hide();
+                Destroy(_wakePrompt.gameObject);
+                _wakePrompt = null;
+            }
         }
 
         protected override void OnInteract(GameObject interactor)
@@ -163,6 +205,7 @@ namespace GameLimon.Story
         private IEnumerator WakeUpSequence()
         {
             _waking = true;
+            StopListeningForWake();
 
             if (wakeSequence != null)
                 StoryDirector.Ensure().Play(wakeSequence);
@@ -248,9 +291,10 @@ namespace GameLimon.Story
 
         private void RestoreFirstPersonBody()
         {
-            if (_hiddenBody == null) return;
-            _hiddenBody.SetExternalView(false);
-            _hiddenBody = null;
+            if (_hiddenBodies == null) return;
+            foreach (FirstPersonBody body in _hiddenBodies)
+                if (body != null) body.RestoreAfterCutscene();
+            _hiddenBodies = null;
         }
 
         private void ApplyWakeCamera(float eyeHeight, float pitch, float roll, float elapsed)

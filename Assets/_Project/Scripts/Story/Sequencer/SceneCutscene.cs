@@ -61,7 +61,7 @@ namespace GameLimon.Story
         private PlayerMotor _motor;
         private PlayerLook _look;
         private PlayerInteractor _interactor;
-        private FirstPersonBody _hiddenPlayerBody;
+        private FirstPersonBody[] _hiddenPlayerBodies;
         private readonly List<Camera> _playerCameras = new List<Camera>();
         private readonly List<AudioListener> _playerListeners = new List<AudioListener>();
         private readonly List<bool> _cameraStates = new List<bool>();
@@ -224,10 +224,11 @@ namespace GameLimon.Story
                 _motor = player.GetComponent<PlayerMotor>();
                 _look = player.GetComponent<PlayerLook>();
                 _interactor = player.GetComponent<PlayerInteractor>();
-                if (hidePlayerBody && _hiddenPlayerBody == null)
+                if (hidePlayerBody && _hiddenPlayerBodies == null)
                 {
-                    _hiddenPlayerBody = player.GetComponentInChildren<FirstPersonBody>(true);
-                    _hiddenPlayerBody?.HideForCutscene();
+                    _hiddenPlayerBodies = player.GetComponentsInChildren<FirstPersonBody>(true);
+                    foreach (FirstPersonBody body in _hiddenPlayerBodies)
+                        body.HideForCutscene();
                 }
 
                 foreach (Camera camera in player.GetComponentsInChildren<Camera>(true))
@@ -358,9 +359,10 @@ namespace GameLimon.Story
 
         private void RestorePlayerBody()
         {
-            if (_hiddenPlayerBody != null)
-                _hiddenPlayerBody.RestoreAfterCutscene();
-            _hiddenPlayerBody = null;
+            if (_hiddenPlayerBodies == null) return;
+            foreach (FirstPersonBody body in _hiddenPlayerBodies)
+                if (body != null) body.RestoreAfterCutscene();
+            _hiddenPlayerBodies = null;
         }
 
         private void OnDisable()
